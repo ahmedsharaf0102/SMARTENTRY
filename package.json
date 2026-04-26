@@ -1,20 +1,10 @@
 {
   "private": true,
-  "name": "smartentry-monorepo",
+  "name": "smartentry",
   "version": "1.0.0",
-  "workspaces": [
-    "frontend",
-    "backend",
-    "telegram-bot"
-  ],
   "dependencies": {
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3"
-  },
-  "scripts": {
-    "dev": "cd frontend && npm run dev",
-    "build": "cd frontend && npm run build",
-    "start": "cd frontend && npm run start"
   }
 }
