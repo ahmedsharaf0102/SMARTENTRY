@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  # ── Nginx Reverse Proxy ─────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: smartentry-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
+    networks:
+      - smartentry
+
+  # ── Next.js Frontend ────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/Dockerfile.frontend
+    container_name: smartentry-frontend
+    environment:
+      - NEXT_PUBLIC_API_URL=/api
+    restart: unless-stopped
+    networks:
+      - smartentry
+
+  # ── Node.js Backend API ─────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/Dockerfile.backend
+    container_name: smartentry-backend
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - DB_PATH=/data/smartentry.db
+      - REDIS_URL=redis://redis:6379
+      - BINANCE_BASE_URL=https://api.binance.com
+      - ANALYSIS_URL=http://analysis:5000
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHANNEL_ID=${TELEGRAM_CHANNEL_ID}
+      - BINANCE_AFFILIATE_REF=${BINANCE_AFFILIATE_REF}
+    volumes:
+      - db-data:/data
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - smartentry
+
+  # ── Python Analysis Engine ──────────────────────────
+  analysis:
+    build:
+      context: ./analysis
+      dockerfile: ../docker/Dockerfile.analysis
+    container_name: smartentry-analysis
+    environment:
+      - DB_PATH=/data/smartentry.db
+    volumes:
+      - db-data:/data
+    restart: unless-stopped
+    networks:
+      - smartentry
+
+  # ── Redis Cache ─────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: smartentry-redis
+    command: redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru --save ""
+    restart: unless-stopped
+    networks:
+      - smartentry
+
+volumes:
+  db-data:
+    driver: local
+
+networks:
+  smartentry:
+    driver: bridge

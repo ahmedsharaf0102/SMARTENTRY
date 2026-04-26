@@ -1,0 +1,19 @@
+{
+  "name": "smartentry-telegram-bot",
+  "version": "1.0.0",
+  "description": "SmartEntry Telegram Bot — Crypto Signal Alerts",
+  "main": "src/bot.ts",
+  "scripts": {
+    "dev": "tsx watch src/bot.ts",
+    "start": "tsx src/bot.ts"
+  },
+  "dependencies": {
+    "grammy": "^1.35.0",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "tsx": "^4.19.0",
+    "@types/node": "^22.0.0"
+  }
+}
