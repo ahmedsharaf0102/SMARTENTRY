@@ -1,12 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Enable standalone output for Docker deployment
-  output: "standalone",
+  // Use standalone output only for Docker (not Vercel)
+  ...(process.env.DOCKER_BUILD === 'true' ? { output: "standalone" } : {}),
 
   // Image optimization
   images: {
-    unoptimized: true, // For static export compatibility
+    unoptimized: false,
   },
 
   // Environment variables exposed to the browser
