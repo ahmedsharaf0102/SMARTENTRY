@@ -1,677 +1,461 @@
-# 🚀 SmartEntry — Crypto Trading Insights Platform
+# 🚀 SmartEntry — Crypto Trading Signals & Insights
 
-## Complete MVP Implementation Plan
+## Complete MVP Implementation Plan (v2 — Updated)
 
-> **Goal:** Build a production-ready MVP in 7–14 days that provides actionable crypto trading signals, market insights, and automated analysis — deployed on Oracle Cloud Free Tier.
+> **Goal:** Build a production-ready crypto signals platform with auth, subscriptions, and automated analysis.
+> **Business Model:** 30-day free trial → $19.99/month subscription
+> **Cost:** $0/month infrastructure (Vercel + Supabase + Oracle free tiers)
 
 ---
 
-## 📐 System Architecture
+## 📐 System Architecture (v2)
 
 ```
-┌───────────────────────────────────────────────────────────────────┐
-│                  Oracle Cloud VPS (Free Tier)                     │
-│                                                                   │
-│  ┌─────────┐    ┌──────────────┐    ┌──────────────────┐         │
-│  │  Nginx   │───▶│  Next.js      │    │  n8n (existing)  │         │
-│  │ :80/:443 │    │  Frontend     │    │  :5678           │         │
-│  │          │    │  :3000        │    │                  │         │
-│  └────┬─────┘    └──────────────┘    └──────┬───────────┘         │
-│       │                                      │                    │
-│       │ /api/*                    Cron triggers every 5 min       │
-│       ▼                                      │                    │
-│  ┌──────────────┐                  ┌─────────▼──────────┐        │
-│  │  Node.js API  │◄────signals────▶│  Python Analysis    │        │
-│  │  (Express)    │                 │  Engine (Flask)     │        │
-│  │  :4000        │                 │  :5000              │        │
-│  └───┬──────┬────┘                 └──────────┬─────────┘        │
-│      │      │                                 │                   │
-│      ▼      ▼                                 ▼                   │
-│  ┌───────┐ ┌───────┐              ┌───────────────────┐          │
-│  │ Redis │ │SQLite │◄────────────▶│ Binance API       │          │
-│  │ :6379 │ │  DB   │              │ (public, free)    │          │
-│  └───────┘ └───────┘              └───────────────────┘          │
-│      │                                                            │
-│      ▼                                                            │
-│  ┌──────────────┐                                                │
-│  │ Telegram Bot  │───▶ Telegram Channel / VIP Group              │
-│  │ (grammY)      │                                                │
-│  └──────────────┘                                                │
-└───────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                        CLOUD SERVICES (FREE)                        │
+│                                                                     │
+│  ┌──────────────────────┐    ┌───────────────────────────────────┐  │
+│  │   Vercel (FREE)       │    │   Supabase (FREE)                │  │
+│  │                       │    │                                   │  │
+│  │  Next.js 16 Frontend  │◄──►│  Auth (Email + Google)           │  │
+│  │  + API Routes         │    │  PostgreSQL Database             │  │
+│  │  + Server Actions     │    │  Row Level Security              │  │
+│  │                       │    │  Real-time subscriptions         │  │
+│  │  Pages:               │    │                                   │  │
+│  │  - Landing            │    │  Tables:                          │  │
+│  │  - Login / Signup     │    │  - profiles (user data)          │  │
+│  │  - Dashboard          │    │  - coins                         │  │
+│  │  - Signals            │    │  - candles                       │  │
+│  │  - Coin Detail        │    │  - signals                       │  │
+│  │  - Pricing            │    │  - subscriptions                 │  │
+│  │  - Profile            │    │                                   │  │
+│  └──────────┬────────────┘    └───────────────┬───────────────────┘  │
+│             │                                 │                      │
+│             │          ┌──────────────┐        │                      │
+│             └──────────│  Stripe      │────────┘                      │
+│                        │  Payments    │                               │
+│                        │  $19.99/mo   │                               │
+│                        └──────────────┘                               │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Oracle Cloud VPS (FREE)                           │
+│                                                                     │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  │
+│  │  Python Analysis  │  │  n8n Automation   │  │  Telegram Bot    │  │
+│  │  Engine (Flask)   │  │  (existing)       │  │  (grammY)        │  │
+│  │                   │  │                   │  │                  │  │
+│  │  - Fetch Binance  │  │  - Cron: 5 min    │  │  - /signals      │  │
+│  │  - RSI / MACD     │  │  - Trigger Python │  │  - /coin BTC     │  │
+│  │  - Signal scoring │  │  - Send alerts    │  │  - Auto-alerts   │  │
+│  │  - Write to       │  │  - Daily report   │  │                  │  │
+│  │    Supabase DB    │  │                   │  │                  │  │
+│  └──────────────────┘  └──────────────────┘  └──────────────────┘  │
+│                                                                     │
+│  Binance API (FREE) ──► n8n ──► Python ──► Supabase DB             │
+└─────────────────────────────────────────────────────────────────────┘
 
 Data Flow:
 ═════════
-Binance API ──▶ n8n (cron) ──▶ Python (analysis) ──▶ SQLite (store)
-                                                          │
-                                                          ▼
-User Browser ──▶ Nginx ──▶ Next.js ──▶ Node API ──▶ Redis Cache ──▶ SQLite
-                                          │
-                                          ▼
-                                    Telegram Bot ──▶ Users
+Binance API ──► n8n (cron 5min) ──► Python (analysis) ──► Supabase DB
+                                                              │
+User Browser ──► Vercel (Next.js) ──► Supabase (direct query) ─┘
+                      │
+                      ├── Supabase Auth (login/signup)
+                      └── Stripe (payments)
 ```
 
-### Architecture Decisions
+### What Changed from v1
+
+| Component | v1 (Old) | v2 (New) | Why |
+|-----------|----------|----------|-----|
+| **Database** | SQLite on VPS | Supabase PostgreSQL | Cloud-hosted, auth included, free |
+| **Auth** | None | Supabase Auth | Email + Google login, free |
+| **Backend API** | Express.js on VPS | Next.js API Routes on Vercel | Less load on VPS, serverless |
+| **Cache** | Redis on VPS | Next.js ISR + Supabase | One less service to manage |
+| **Payments** | None | Stripe | Industry standard, pay only on revenue |
+| **VPS Load** | Heavy (6 services) | Light (3 services) | Python + n8n + Telegram only |
+
+### Architecture Decisions (v2)
 
 | Decision | Choice | Why |
 |----------|--------|-----|
-| **Database** | SQLite (WAL mode) | Zero memory overhead, perfect for MVP scale |
-| **Cache** | Redis | Fast signal lookups, avoid repeated API calls |
-| **Frontend** | Next.js 16 + Tailwind 4 | Already in your template, SSR for SEO |
-| **API** | Express.js (Node) | Lightweight, fast, handles REST |
-| **Analysis** | Python + pandas-ta | Best TA library ecosystem, 150+ indicators |
-| **Automation** | n8n (existing) | Already installed, visual workflow builder |
-| **Charts** | TradingView Lightweight Charts | Free, fast, professional look |
-| **Alerts** | grammY (Telegram Bot) | Modern, TypeScript-first, lightweight |
-| **Deployment** | Docker Compose | All services in one stack, easy management |
+| **Auth** | Supabase Auth | Free, Email + Google, 50K users/month |
+| **Database** | Supabase PostgreSQL | Free, managed, RLS for security |
+| **Frontend + API** | Next.js 16 on Vercel | Free hosting, API Routes = no Express needed |
+| **Analysis** | Python + pandas-ta on VPS | Heavy computation stays on VPS |
+| **Automation** | n8n on VPS | Already installed, visual workflows |
+| **Payments** | Stripe | $0 until revenue, handles subscriptions |
+| **Alerts** | Telegram Bot on VPS | Runs 24/7, no serverless limits |
+| **Charts** | TradingView Lightweight Charts | Free, fast, professional |
 
 ---
 
-## 📦 Open-Source Libraries & Tools
+## 💰 Business Model
 
-### Frontend (Node.js / Next.js)
+### Subscription Tiers
 
-| Package | Purpose | Install |
-|---------|---------|---------|
-| `next` 16.x | React framework (already installed) | ✅ |
-| `react` 19.x | UI library (already installed) | ✅ |
-| `tailwindcss` 4.x | Styling (already installed) | ✅ |
-| `lightweight-charts` | TradingView charts | `npm i lightweight-charts` |
-| `lucide-react` | Icon library | `npm i lucide-react` |
-| `swr` | Data fetching + caching | `npm i swr` |
-| `clsx` | Conditional classnames | `npm i clsx` |
-| `framer-motion` | Animations | `npm i framer-motion` |
+| | Free Trial | Pro ($19.99/mo) |
+|---|---|---|
+| **Duration** | 30 days | Monthly subscription |
+| **Signals** | Top 5 signals only | All 50+ coins |
+| **Charts** | Basic view | Full TradingView charts |
+| **Telegram Alerts** | ❌ | ✅ Real-time alerts |
+| **Daily Reports** | ❌ | ✅ Email + Telegram |
+| **Coin Detail** | Limited | Full analysis + indicators |
+| **API Access** | ❌ | Future feature |
 
-### Backend (Node.js API)
+### Revenue Streams
 
-| Package | Purpose | Install |
-|---------|---------|---------|
-| `express` | HTTP server | `npm i express` |
-| `cors` | Cross-origin support | `npm i cors` |
-| `better-sqlite3` | SQLite driver (fast, sync) | `npm i better-sqlite3` |
-| `ioredis` | Redis client | `npm i ioredis` |
-| `grammy` | Telegram Bot framework | `npm i grammy` |
-| `node-cron` | Scheduled tasks | `npm i node-cron` |
-| `zod` | Input validation | `npm i zod` |
-| `helmet` | Security headers | `npm i helmet` |
-| `compression` | Gzip responses | `npm i compression` |
-| `winston` | Logging | `npm i winston` |
-
-### Python Analysis Engine
-
-| Package | Purpose | Install |
-|---------|---------|---------|
-| `flask` | Lightweight HTTP API | `pip install flask` |
-| `pandas` | Data manipulation | `pip install pandas` |
-| `pandas-ta` | 150+ technical indicators | `pip install pandas-ta` |
-| `requests` | HTTP client | `pip install requests` |
-| `numpy` | Numerical computing | `pip install numpy` |
-| `gunicorn` | Production WSGI server | `pip install gunicorn` |
-
-### Open-Source Repos to Reference / Integrate
-
-| Repo | Stars | Use For |
-|------|-------|---------|
-| [CryptoSignal/Crypto-Signal](https://github.com/CryptoSignal/Crypto-Signal) | 4.5k+ | Signal generation patterns, indicator logic |
-| [freqtrade/freqtrade](https://github.com/freqtrade/freqtrade) | 30k+ | Strategy patterns, Binance integration patterns |
-| [tradingview/lightweight-charts](https://github.com/tradingview/lightweight-charts) | 8k+ | Chart component (direct dependency) |
-| [python-binance](https://github.com/sammchardy/python-binance) | 5k+ | Reference for Binance API patterns |
-| [grammyjs/grammY](https://github.com/grammyjs/grammY) | 2k+ | Telegram bot (direct dependency) |
+1. **Subscriptions** — $19.99/month per user
+2. **Binance Affiliate** — Commission on every trade via referral link
+3. **Telegram VIP Group** — Exclusive access for paid users
 
 ---
 
-## 📁 Project Folder Structure
+## 📦 Tech Stack (Updated)
 
-```
-smartentry/
-├── frontend/                    # Next.js 16 App
-│   ├── app/
-│   │   ├── layout.tsx           # Root layout (LTR English)
-│   │   ├── page.tsx             # Landing / Dashboard
-│   │   ├── globals.css          # Global styles
-│   │   ├── signals/
-│   │   │   └── page.tsx         # Signals list page
-│   │   └── coin/
-│   │       └── [symbol]/
-│   │           └── page.tsx     # Individual coin analysis
-│   ├── components/
-│   │   ├── layout/
-│   │   │   ├── Navbar.tsx
-│   │   │   ├── Footer.tsx
-│   │   │   └── Sidebar.tsx
-│   │   ├── charts/
-│   │   │   ├── PriceChart.tsx        # TradingView lightweight chart
-│   │   │   ├── MiniChart.tsx         # Small sparkline chart
-│   │   │   └── VolumeChart.tsx
-│   │   ├── signals/
-│   │   │   ├── SignalCard.tsx         # Individual signal card
-│   │   │   ├── SignalTable.tsx        # Signals table view
-│   │   │   └── SignalBadge.tsx        # BUY/WAIT/WATCH badge
-│   │   ├── dashboard/
-│   │   │   ├── TopSignals.tsx         # Top 10 oversold etc.
-│   │   │   ├── MarketOverview.tsx     # Market summary
-│   │   │   ├── TrendingCoins.tsx
-│   │   │   └── StatsCards.tsx
-│   │   └── ui/
-│   │       ├── Card.tsx
-│   │       ├── Badge.tsx
-│   │       ├── Skeleton.tsx
-│   │       └── Tooltip.tsx
-│   ├── lib/
-│   │   ├── api.ts               # API client (fetch wrapper)
-│   │   ├── utils.ts             # Formatting, helpers
-│   │   └── constants.ts         # Config values
-│   ├── hooks/
-│   │   ├── useSignals.ts        # SWR hook for signals
-│   │   └── useMarketData.ts     # SWR hook for market data
-│   ├── package.json
-│   ├── next.config.ts
-│   └── tsconfig.json
-│
-├── backend/                     # Node.js Express API
-│   ├── src/
-│   │   ├── index.ts             # Entry point
-│   │   ├── routes/
-│   │   │   ├── signals.ts       # GET /api/signals
-│   │   │   ├── coins.ts         # GET /api/coins/:symbol
-│   │   │   └── market.ts        # GET /api/market/overview
-│   │   ├── services/
-│   │   │   ├── binance.ts       # Binance API wrapper
-│   │   │   ├── cache.ts         # Redis cache layer
-│   │   │   ├── db.ts            # SQLite database
-│   │   │   └── telegram.ts      # Telegram bot service
-│   │   ├── models/
-│   │   │   ├── signal.ts        # Signal data model
-│   │   │   └── coin.ts          # Coin data model
-│   │   ├── utils/
-│   │   │   ├── logger.ts
-│   │   │   └── helpers.ts
-│   │   └── config.ts            # Environment config
-│   ├── package.json
-│   └── tsconfig.json
-│
-├── analysis/                    # Python Analysis Engine
-│   ├── app.py                   # Flask API entry
-│   ├── engine/
-│   │   ├── indicators.py        # RSI, MACD, SMA calculations
-│   │   ├── signals.py           # Signal generation logic
-│   │   ├── volume.py            # Volume spike detection
-│   │   └── trends.py            # Trend analysis (MA crossover)
-│   ├── utils/
-│   │   ├── binance_client.py    # Binance data fetcher
-│   │   └── helpers.py
-│   ├── requirements.txt
-│   └── Dockerfile
-│
-├── n8n/                         # n8n Workflow Exports
-│   ├── workflows/
-│   │   ├── fetch-market-data.json
-│   │   ├── run-analysis.json
-│   │   ├── send-telegram-alerts.json
-│   │   └── daily-report.json
-│   └── README.md
-│
-├── telegram-bot/                # Telegram Bot (standalone)
-│   ├── src/
-│   │   ├── bot.ts
-│   │   ├── commands/
-│   │   │   ├── start.ts
-│   │   │   ├── signals.ts
-│   │   │   └── subscribe.ts
-│   │   └── handlers/
-│   │       └── alerts.ts
-│   ├── package.json
-│   └── tsconfig.json
-│
-├── docker/
-│   ├── docker-compose.yml       # Full stack compose
-│   ├── docker-compose.dev.yml   # Development overrides
-│   ├── Dockerfile.frontend
-│   ├── Dockerfile.backend
-│   ├── Dockerfile.analysis
-│   └── nginx/
-│       └── nginx.conf
-│
-├── .env.example
-├── .gitignore
-└── README.md
-```
+### Frontend (Vercel — Next.js 16)
+
+| Package | Purpose |
+|---------|---------|
+| `next` 16.1.6 | Framework (already installed) |
+| `react` 19.2.3 | UI (already installed) |
+| `tailwindcss` ^4 | Styling (already installed) |
+| `@supabase/supabase-js` | Auth + Database client |
+| `@supabase/ssr` | Server-side Supabase for Next.js |
+| `stripe` | Stripe server SDK |
+| `@stripe/stripe-js` | Stripe client SDK |
+| `lightweight-charts` | TradingView charts |
+| `lucide-react` | Icons |
+| `swr` | Data fetching + caching |
+| `clsx` | Conditional classnames |
+| `framer-motion` | Animations |
+
+### Oracle VPS (Python + Node.js)
+
+| Package | Purpose |
+|---------|---------|
+| `flask` | Python API |
+| `pandas` + `pandas-ta` | Technical analysis |
+| `supabase` (Python) | Write signals to Supabase DB |
+| `requests` | HTTP client |
+| `grammy` | Telegram bot |
+| `n8n` | Automation (already installed) |
+
+### Cloud Services (All FREE)
+
+| Service | Free Tier Limit | Our Usage |
+|---------|-----------------|-----------|
+| **Vercel** | 100GB bandwidth/month | ~5GB |
+| **Supabase** | 50K users, 500MB DB, 5GB bandwidth | Well within |
+| **Stripe** | $0/month, 2.9% + 30¢ per transaction | Pay only on revenue |
+| **Oracle VPS** | 4 OCPU, 24GB RAM | Using ~2GB |
+| **Binance API** | 1200 weight/min | Using ~200/cycle |
 
 ---
 
-## 🗓️ Phase-by-Phase Implementation Plan
-
----
-
-### PHASE 1: Foundation & Data Pipeline (Days 1–3)
-
-**Goal:** Get data flowing from Binance → Python → SQLite
-
-#### Day 1: Project Setup
-
-- [ ] Initialize Next.js frontend (convert template to English LTR)
-- [ ] Initialize Node.js backend (Express + TypeScript)
-- [ ] Initialize Python analysis engine (Flask)
-- [ ] Set up SQLite database schema
-- [ ] Set up Redis (Docker)
-- [ ] Create Docker Compose for all services
-- [ ] Set up `.env` configuration
-
-**Database Schema (SQLite):**
+## 🗄️ Database Schema (Supabase PostgreSQL)
 
 ```sql
--- Coins we track
-CREATE TABLE coins (
-  symbol TEXT PRIMARY KEY,        -- e.g., 'BTCUSDT'
-  base_asset TEXT,                -- e.g., 'BTC'
-  quote_asset TEXT,               -- e.g., 'USDT'
-  is_active INTEGER DEFAULT 1,
-  created_at TEXT DEFAULT (datetime('now'))
+-- ═══════════════════════════════════════════
+-- Users & Auth (Supabase Auth handles this)
+-- ═══════════════════════════════════════════
+
+-- User profiles (extends Supabase Auth)
+CREATE TABLE profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT NOT NULL,
+  full_name TEXT,
+  avatar_url TEXT,
+  subscription_tier TEXT DEFAULT 'trial',  -- 'trial', 'pro', 'expired'
+  trial_starts_at TIMESTAMPTZ DEFAULT now(),
+  trial_ends_at TIMESTAMPTZ DEFAULT (now() + INTERVAL '30 days'),
+  stripe_customer_id TEXT,
+  stripe_subscription_id TEXT,
+  telegram_chat_id TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Price data (OHLCV candles)
+-- ═══════════════════════════════════════════
+-- Market Data
+-- ═══════════════════════════════════════════
+
+CREATE TABLE coins (
+  symbol TEXT PRIMARY KEY,
+  base_asset TEXT NOT NULL,
+  quote_asset TEXT DEFAULT 'USDT',
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
 CREATE TABLE candles (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  symbol TEXT NOT NULL,
-  interval TEXT NOT NULL,          -- '1h', '4h', '1d'
-  open_time INTEGER NOT NULL,
-  open REAL, high REAL, low REAL, close REAL,
-  volume REAL,
+  id BIGSERIAL PRIMARY KEY,
+  symbol TEXT NOT NULL REFERENCES coins(symbol),
+  interval TEXT NOT NULL,
+  open_time BIGINT NOT NULL,
+  open DOUBLE PRECISION NOT NULL,
+  high DOUBLE PRECISION NOT NULL,
+  low DOUBLE PRECISION NOT NULL,
+  close DOUBLE PRECISION NOT NULL,
+  volume DOUBLE PRECISION NOT NULL,
+  close_time BIGINT,
   UNIQUE(symbol, interval, open_time)
 );
 
--- Generated signals
 CREATE TABLE signals (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  id BIGSERIAL PRIMARY KEY,
   symbol TEXT NOT NULL,
-  signal_type TEXT NOT NULL,       -- 'RSI_OVERSOLD', 'MA_CROSSOVER', 'VOLUME_SPIKE'
-  action TEXT NOT NULL,            -- 'BUY', 'WAIT', 'WATCH'
-  strength REAL,                   -- 0-100 confidence score
-  price_at_signal REAL,
-  details TEXT,                    -- JSON with indicator values
-  created_at TEXT DEFAULT (datetime('now')),
-  expires_at TEXT
+  signal_type TEXT NOT NULL,
+  action TEXT NOT NULL,
+  strength DOUBLE PRECISION DEFAULT 0,
+  price_at_signal DOUBLE PRECISION,
+  details JSONB,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  expires_at TIMESTAMPTZ
 );
 
--- Alert subscribers
-CREATE TABLE subscribers (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  telegram_chat_id TEXT UNIQUE,
-  tier TEXT DEFAULT 'free',        -- 'free', 'vip'
-  is_active INTEGER DEFAULT 1,
-  created_at TEXT DEFAULT (datetime('now'))
+-- ═══════════════════════════════════════════
+-- Subscriptions
+-- ═══════════════════════════════════════════
+
+CREATE TABLE subscriptions (
+  id BIGSERIAL PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  stripe_subscription_id TEXT UNIQUE,
+  status TEXT DEFAULT 'active',  -- 'active', 'canceled', 'past_due'
+  plan TEXT DEFAULT 'pro',
+  price_cents INTEGER DEFAULT 1999,
+  current_period_start TIMESTAMPTZ,
+  current_period_end TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
 );
-```
 
-#### Day 2: Binance Data Fetcher (Python)
+-- ═══════════════════════════════════════════
+-- Row Level Security (RLS)
+-- ═══════════════════════════════════════════
 
-- [ ] Build Binance API client (public endpoints only, no auth needed)
-- [ ] Fetch top 50 USDT trading pairs by volume
-- [ ] Fetch klines (candlestick data) — 1h, 4h, 1d intervals
-- [ ] Store raw OHLCV data in SQLite
-- [ ] Implement rate limiting (stay under 1200 weight/min)
+-- Everyone can read coins and public signals
+ALTER TABLE coins ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Coins are public" ON coins FOR SELECT USING (true);
 
-**Key Binance Endpoints (FREE, no auth):**
+ALTER TABLE signals ENABLE ROW LEVEL SECURITY;
+-- Free users: only top 5 signals (handled in API, not RLS)
+CREATE POLICY "Signals are readable by authenticated users"
+  ON signals FOR SELECT
+  USING (auth.role() = 'authenticated');
 
-```
-GET /api/v3/ticker/24hr           → 24h price changes (weight: 40)
-GET /api/v3/klines                → Candlestick data (weight: 2)
-GET /api/v3/exchangeInfo          → Available pairs (weight: 20)
-GET /api/v3/ticker/price          → Current prices (weight: 2)
-```
+-- Profiles: users can only read/update their own
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can read own profile"
+  ON profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users can update own profile"
+  ON profiles FOR UPDATE USING (auth.uid() = id);
 
-#### Day 3: Technical Analysis Engine (Python)
+-- Subscriptions: users can only read their own
+ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can read own subscriptions"
+  ON subscriptions FOR SELECT USING (auth.uid() = user_id);
 
-- [ ] Build indicator calculation module using `pandas-ta`
-- [ ] RSI (14-period) — oversold < 30, overbought > 70
-- [ ] SMA/EMA crossover (9/21, 50/200)
-- [ ] Volume spike detection (volume > 2x 20-period average)
-- [ ] MACD signal line crossover
-- [ ] Build signal scoring system (0–100 confidence)
-- [ ] Generate actionable decisions: **BUY / WAIT / WATCH**
+-- Python analysis engine writes via service role (bypasses RLS)
 
-**Signal Logic:**
-
-```
-Score-based signal generation:
-- RSI < 30         → +30 points (oversold = potential buy)
-- RSI < 20         → +20 bonus (extremely oversold)
-- Price > SMA_50   → +15 points (uptrend)
-- MACD crossover   → +20 points (bullish momentum)
-- Volume spike     → +15 points (confirmation)
-
-Score thresholds:
-- >= 70  → BUY
-- 40-69  → WATCH
-- < 40   → WAIT
+-- ═══════════════════════════════════════════
+-- Indexes
+-- ═══════════════════════════════════════════
+CREATE INDEX idx_candles_symbol_interval ON candles(symbol, interval);
+CREATE INDEX idx_candles_open_time ON candles(open_time DESC);
+CREATE INDEX idx_signals_created_at ON signals(created_at DESC);
+CREATE INDEX idx_signals_action ON signals(action);
+CREATE INDEX idx_signals_symbol ON signals(symbol);
+CREATE INDEX idx_profiles_stripe ON profiles(stripe_customer_id);
 ```
 
 ---
 
-### PHASE 2: API Layer & Caching (Days 4–5)
-
-**Goal:** Node.js API serves cached signals to frontend
-
-#### Day 4: Backend API
-
-- [ ] Express.js server with TypeScript
-- [ ] `GET /api/signals` — Latest signals (paginated)
-- [ ] `GET /api/signals/top` — Top 10 by strength
-- [ ] `GET /api/coins/:symbol` — Coin detail + indicators
-- [ ] `GET /api/market/overview` — Market summary stats
-- [ ] Redis caching layer (TTL: 5 min for signals, 1 min for prices)
-- [ ] Error handling + rate limiting middleware
-
-**Caching Strategy:**
+## 📁 Project Structure (v2 — Updated)
 
 ```
-User Request → Check Redis Cache
-  ├─ HIT  → Return cached data (fast)
-  └─ MISS → Query SQLite → Cache → Return
-
-n8n runs analysis every 5 minutes
-  → Python writes to SQLite
-  → Invalidate relevant Redis keys
-
-Result: Users NEVER hit Binance directly
+smartentry/
+├── frontend/                         # Next.js 16 (Vercel)
+│   ├── app/
+│   │   ├── layout.tsx                # Root layout + Supabase provider
+│   │   ├── page.tsx                  # Landing page
+│   │   ├── globals.css               # Design system
+│   │   │
+│   │   ├── (auth)/                   # Auth pages (no navbar)
+│   │   │   ├── login/page.tsx        # Email + Google login
+│   │   │   ├── signup/page.tsx       # Registration
+│   │   │   └── callback/route.ts     # OAuth callback
+│   │   │
+│   │   ├── (dashboard)/              # Protected pages (behind auth)
+│   │   │   ├── layout.tsx            # Dashboard layout + auth check
+│   │   │   ├── dashboard/page.tsx    # Main dashboard
+│   │   │   ├── signals/page.tsx      # All signals
+│   │   │   ├── coin/[symbol]/page.tsx # Coin detail
+│   │   │   └── profile/page.tsx      # User profile + subscription
+│   │   │
+│   │   ├── pricing/page.tsx          # Pricing page (public)
+│   │   │
+│   │   └── api/                      # API Routes (serverless)
+│   │       ├── signals/route.ts      # GET signals (tier-gated)
+│   │       ├── coins/[symbol]/route.ts
+│   │       ├── market/route.ts
+│   │       ├── stripe/
+│   │       │   ├── checkout/route.ts # Create Stripe session
+│   │       │   └── webhook/route.ts  # Stripe webhook handler
+│   │       └── auth/
+│   │           └── callback/route.ts # Supabase auth callback
+│   │
+│   ├── components/
+│   │   ├── layout/ (Navbar, Footer, Sidebar)
+│   │   ├── charts/ (PriceChart, MiniChart)
+│   │   ├── signals/ (SignalCard, SignalTable)
+│   │   ├── dashboard/ (StatsCards, TopSignals)
+│   │   ├── auth/ (LoginForm, SignupForm, GoogleButton)
+│   │   └── ui/ (Card, Badge, Skeleton, Modal)
+│   │
+│   ├── lib/
+│   │   ├── supabase/
+│   │   │   ├── client.ts             # Browser Supabase client
+│   │   │   ├── server.ts             # Server Supabase client
+│   │   │   └── middleware.ts         # Auth middleware
+│   │   ├── stripe.ts                 # Stripe client
+│   │   ├── utils.ts
+│   │   └── constants.ts
+│   │
+│   ├── hooks/
+│   │   ├── useUser.ts                # Current user hook
+│   │   ├── useSubscription.ts        # Subscription status
+│   │   └── useSignals.ts             # Signals data
+│   │
+│   └── middleware.ts                 # Next.js middleware (auth redirect)
+│
+├── analysis/                         # Python (Oracle VPS)
+│   ├── app.py                        # Flask API
+│   ├── engine/
+│   │   ├── indicators.py             # RSI, MACD, SMA, EMA
+│   │   ├── signals.py                # Signal scoring
+│   │   ├── volume.py                 # Volume spikes
+│   │   └── trends.py                 # Trend analysis
+│   ├── utils/
+│   │   ├── binance_client.py         # Binance API
+│   │   └── supabase_client.py        # Write to Supabase DB
+│   ├── requirements.txt
+│   └── Dockerfile
+│
+├── telegram-bot/                     # Telegram (Oracle VPS)
+│   ├── src/bot.ts
+│   └── package.json
+│
+├── n8n/                              # Automation configs
+│   └── README.md
+│
+├── docker/                           # Docker for VPS only
+│   ├── docker-compose.yml            # Python + Telegram only
+│   └── Dockerfile.analysis
+│
+├── supabase/                         # Database migrations
+│   └── migrations/
+│       └── 001_initial_schema.sql
+│
+├── .env.example
+├── vercel.json
+├── package.json
+└── README.md
 ```
 
-#### Day 5: Python Flask API
-
-- [ ] `POST /analyze` — Trigger full analysis run
-- [ ] `GET /health` — Health check
-- [ ] `GET /indicators/:symbol` — Get indicators for a coin
-- [ ] Connect Python → SQLite (read candles, write signals)
-- [ ] Add Gunicorn for production serving
+### What's Removed from v1
+- ❌ `backend/` folder (Express.js) → replaced by Next.js API Routes
+- ❌ Redis → not needed with Supabase + ISR caching
+- ❌ SQLite → replaced by Supabase PostgreSQL
+- ❌ Nginx → Vercel handles frontend, VPS only needs Docker
 
 ---
 
-### PHASE 3: Frontend Dashboard (Days 6–9)
+## 🗓️ Updated Phase Plan
 
-**Goal:** Beautiful, fast-loading dashboard with charts and signals
+### PHASE 1: Foundation (Days 1–3)
+- [x] Project structure
+- [x] Frontend template (Next.js + Tailwind)
+- [x] Python analysis engine
+- [x] Docker setup
+- [ ] **NEW: Set up Supabase project** (create tables, enable auth)
+- [ ] **NEW: Supabase Auth integration** (signup, login, Google)
+- [ ] **NEW: Auth middleware** (protect dashboard routes)
+- [ ] Connect Python → Supabase (write signals)
 
-#### Day 6: Layout & Design System
+### PHASE 2: Dashboard + Data (Days 4–7)
+- [ ] Fetch real data from Binance → Python → Supabase
+- [ ] Build dashboard with real signals
+- [ ] Signal cards, tables, filters
+- [ ] TradingView charts on coin detail page
+- [ ] Tier-gated content (free trial vs pro)
 
-- [ ] Convert template from Arabic RTL → English LTR
-- [ ] Create dark theme color palette (crypto-native feel)
-- [ ] Build Navbar, Sidebar, Footer components
-- [ ] Set up responsive grid layout
-- [ ] Import Google Font (Inter or Space Grotesk)
-- [ ] Create reusable UI components (Card, Badge, Skeleton)
+### PHASE 3: Payments + Subscriptions (Days 8–9)
+- [ ] Stripe integration
+- [ ] Pricing page
+- [ ] Checkout flow
+- [ ] Webhook → update subscription in Supabase
+- [ ] 30-day trial logic
+- [ ] Expired trial → redirect to pricing
 
-**Color Palette (Dark Crypto Theme):**
+### PHASE 4: Automation + Alerts (Days 10–12)
+- [ ] n8n workflows
+- [ ] Telegram bot
+- [ ] Auto-alerts for paid users
+- [ ] Daily reports
 
-```css
---bg-primary:    #0a0e17;    /* Deep navy black */
---bg-secondary:  #111827;    /* Card backgrounds */
---bg-tertiary:   #1a2035;    /* Hover states */
---accent-green:  #00d68f;    /* BUY / Bullish */
---accent-red:    #ff3d71;    /* SELL / Bearish */
---accent-yellow: #ffaa00;    /* WATCH / Caution */
---accent-blue:   #3366ff;    /* Primary actions */
---text-primary:  #e4e6eb;    /* Main text */
---text-secondary:#8b95a5;    /* Muted text */
-```
-
-#### Day 7: Dashboard Components
-
-- [ ] **StatsCards** — Total signals today, market sentiment, top gainer
-- [ ] **TopSignals** — Top 10 oversold/overbought with signal badges
-- [ ] **SignalCard** — Coin icon, price, RSI, action badge, confidence bar
-- [ ] **MarketOverview** — BTC dominance, total market cap, fear/greed
-- [ ] **TrendingCoins** — Coins with most signal activity
-
-#### Day 8: Charts Integration
-
-- [ ] **PriceChart** — TradingView Lightweight Charts (candlestick)
-- [ ] **MiniChart** — Sparkline for signal cards
-- [ ] **VolumeChart** — Volume bars with spike highlighting
-- [ ] Coin detail page (`/coin/BTCUSDT`) with full analysis view
-
-#### Day 9: Polish & Interactions
-
-- [ ] Loading skeletons (no spinners)
-- [ ] Auto-refresh with SWR (every 60 seconds)
-- [ ] Hover micro-animations on cards
-- [ ] Mobile-responsive layout
-- [ ] Error states and empty states
-- [ ] SEO meta tags per page
+### PHASE 5: Deployment + Launch (Days 13–14)
+- [ ] Deploy Python + Telegram to Oracle VPS
+- [ ] Configure n8n workflows
+- [ ] Domain + SSL
+- [ ] Final QA
+- [ ] Launch
 
 ---
 
-### PHASE 4: Automation & Alerts (Days 10–12)
-
-**Goal:** n8n workflows + Telegram bot delivering signals automatically
-
-#### Day 10: n8n Workflows
-
-**Workflow 1: Fetch Market Data (every 5 min)**
-
-```
-[Cron Trigger: */5 * * * *]
-    → [HTTP Request: Binance /ticker/24hr]
-    → [HTTP Request: Binance /klines for top 50 pairs]
-    → [Code Node: Format data]
-    → [HTTP Request: POST to Python /analyze]
-    → [IF: New signals generated?]
-        → YES: [HTTP Request: POST to Node API /internal/cache-invalidate]
-        → NO:  [End]
-```
-
-**Workflow 2: Send Telegram Alerts (triggered by Workflow 1)**
-
-```
-[Webhook Trigger: /new-signal]
-    → [Code Node: Format signal message]
-    → [IF: Signal strength >= 70?]
-        → YES: [Telegram: Send to VIP channel]
-        → YES: [Telegram: Send to Free channel]
-    → [IF: Signal strength 50-69?]
-        → YES: [Telegram: Send to Free channel only]
-```
-
-**Workflow 3: Daily Report (every day at 8 AM UTC)**
-
-```
-[Cron Trigger: 0 8 * * *]
-    → [HTTP Request: GET /api/signals/daily-summary]
-    → [Code Node: Build markdown report]
-    → [Telegram: Send daily digest to all subscribers]
-```
-
-#### Day 11: Telegram Bot
-
-- [ ] Create bot via @BotFather
-- [ ] Implement commands:
-  - `/start` — Welcome + subscribe
-  - `/signals` — Latest top 5 signals
-  - `/coin BTC` — Quick analysis for a coin
-  - `/subscribe` — Join alerts
-  - `/unsubscribe` — Leave alerts
-- [ ] Create Telegram Channel for public signals
-- [ ] Create VIP Telegram Group (for future paid tier)
-
-#### Day 12: Testing & Integration
-
-- [ ] End-to-end test: Binance → Python → SQLite → API → Frontend
-- [ ] Test Telegram alerts delivery
-- [ ] Test n8n workflow reliability
-- [ ] Load test API with concurrent requests
-- [ ] Fix edge cases (missing data, API errors, timeouts)
-
----
-
-### PHASE 5: Deployment & Launch (Days 13–14)
-
-**Goal:** Deploy to Oracle Cloud, go live
-
-#### Day 13: Docker & Deployment
-
-- [ ] Write production Dockerfiles (multi-stage builds)
-- [ ] Docker Compose with all services
-- [ ] Nginx config (SSL with Let's Encrypt / Certbot)
-- [ ] Deploy to Oracle Cloud VPS
-- [ ] Set up domain + DNS
-
-**Docker Compose Overview:**
-
-```yaml
-services:
-  nginx:
-    image: nginx:alpine
-    ports: ["80:80", "443:443"]
-
-  frontend:
-    build: ./frontend
-    # Next.js standalone output
-
-  backend:
-    build: ./backend
-    environment:
-      - REDIS_URL=redis://redis:6379
-      - DB_PATH=/data/smartentry.db
-    volumes:
-      - db-data:/data
-
-  analysis:
-    build: ./analysis
-    volumes:
-      - db-data:/data
-
-  redis:
-    image: redis:7-alpine
-    command: redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru
-
-volumes:
-  db-data:
-```
-
-**Memory Budget (Oracle Free Tier):**
-
-```
-Service             | Est. Memory
---------------------|------------
-Nginx               |    30 MB
-Next.js (standalone)|   150 MB
-Node.js API         |   100 MB
-Python + Gunicorn   |   200 MB
-Redis               |    64 MB
-SQLite              |    ~0 MB
-n8n (existing)      |   400 MB
-Docker overhead     |   100 MB
---------------------|------------
-TOTAL               | ~1.05 GB  ✅
-```
-
-#### Day 14: Launch Checklist
-
-- [ ] Final QA on all pages
-- [ ] Set up monitoring (health check endpoint)
-- [ ] Configure n8n cron schedules
-- [ ] Announce on Telegram channel
-- [ ] Binance affiliate link integration
-- [ ] Write README with setup instructions
-
----
-
-## 💰 Monetization Strategy
-
-### Phase 1: Free Launch (Day 1–30)
-- Public Telegram channel with free signals
-- Binance affiliate referral links on every coin page
-  - Earn commission on every trade users make
-
-### Phase 2: VIP Tier (Month 2+)
-- **VIP Telegram Group** — $9.99/month
-  - Faster signals (1 min vs 5 min delay)
-  - More coins analyzed (100 vs 50)
-  - Custom alerts
-
-### Phase 3: Premium Dashboard (Month 3+)
-- **Pro Web Dashboard** — $19.99/month
-  - Portfolio tracker
-  - Custom watchlists
-  - Historical signal accuracy stats
-
----
-
-## 📈 Scaling Roadmap
-
-### 0 → 100 Users (Current Plan)
-- Single Oracle VPS, SQLite, Redis, Docker Compose
-
-### 100 → 1,000 Users
-- Add CDN (Cloudflare free tier)
-- Increase Redis cache TTL
-- Add connection pooling
-
-### 1,000 → 10,000 Users
-- Migrate SQLite → PostgreSQL
-- Separate frontend to Vercel (free tier)
-- Add second Oracle VPS for Python analysis
-- Implement WebSocket for real-time updates
-
----
-
-## 🧠 Suggestions to Improve the Idea
-
-1. **Signal Accuracy Tracking** — Track hit rate of signals. Display accuracy % to build trust.
-2. **Fear & Greed Index** — Integrate free Alternative.me API for market sentiment.
-3. **Multi-Timeframe Analysis** — Show signals across 1H, 4H, 1D. Agreement = stronger signal.
-4. **Social Proof** — "423 traders watching BTC" — simple page view counter.
-5. **AI Summary** — Use Ollama (local LLM) for natural language signal summaries.
-6. **Backtesting Page** — Show historical signal performance. Builds massive trust.
-7. **Landing Page** — Marketing page with testimonials and accuracy stats.
-
----
-
-## 🔑 Environment Variables (.env.example)
+## 🔑 Environment Variables (Updated)
 
 ```env
-# General
-NODE_ENV=production
-PORT=4000
+# === Supabase ===
+NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIs...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIs...
 
-# Database
-DB_PATH=./data/smartentry.db
+# === Stripe ===
+STRIPE_SECRET_KEY=sk_live_xxxxx
+STRIPE_WEBHOOK_SECRET=whsec_xxxxx
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_xxxxx
+STRIPE_PRICE_ID=price_xxxxx
 
-# Redis
-REDIS_URL=redis://redis:6379
-
-# Binance (no auth needed for public endpoints)
+# === Binance (no auth needed) ===
 BINANCE_BASE_URL=https://api.binance.com
-
-# CoinGecko
-COINGECKO_BASE_URL=https://api.coingecko.com/api/v3
-
-# Telegram Bot
-TELEGRAM_BOT_TOKEN=your_bot_token_from_botfather
-TELEGRAM_CHANNEL_ID=@smartentry_signals
-TELEGRAM_VIP_GROUP_ID=-100xxxxxxxxxx
-
-# Binance Affiliate
 BINANCE_AFFILIATE_REF=your_referral_id
+NEXT_PUBLIC_BINANCE_AFFILIATE_REF=your_referral_id
 
-# n8n
-N8N_WEBHOOK_URL=http://n8n:5678
+# === Telegram Bot ===
+TELEGRAM_BOT_TOKEN=your_bot_token
+TELEGRAM_CHANNEL_ID=@smartentry_signals
 
-# Analysis Engine
-ANALYSIS_URL=http://analysis:5000
+# === Analysis Engine (VPS) ===
+SUPABASE_URL=https://xxxxx.supabase.co
+SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIs...
 ```
 
 ---
 
 ## ✅ Pre-Implementation Checklist
 
-Before we start coding, confirm:
-
+- [ ] Create Supabase project (supabase.com — free)
+- [ ] Create Stripe account (stripe.com — free)
+- [ ] Get Supabase URL + keys
+- [ ] Get Stripe keys
+- [ ] Enable Google Auth in Supabase dashboard
 - [ ] Domain name ready?
 - [ ] Oracle VPS SSH access working?
-- [ ] Docker + Docker Compose installed on VPS?
-- [ ] n8n accessible on VPS?
-- [ ] Telegram account ready for bot creation?
-- [ ] Binance affiliate account set up?
-- [ ] Git repository initialized?
+- [ ] Telegram bot created via @BotFather?
 
 ---
 
-> **Next Step:** Review this plan, give me your feedback, and then I'll start implementing Phase 1.
+> **Next Step:** Set up Supabase + Auth + update the codebase to use the new architecture.
