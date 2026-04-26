@@ -1,0 +1,15 @@
+{
+  "private": true,
+  "name": "smartentry-monorepo",
+  "version": "1.0.0",
+  "workspaces": [
+    "frontend",
+    "backend",
+    "telegram-bot"
+  ],
+  "scripts": {
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "start": "cd frontend && npm run start"
+  }
+}
