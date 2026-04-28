@@ -1,9 +1,9 @@
 # 📊 SmartEntry — Plan Tracker & Dependencies
 
-> **Last Updated:** 2026-04-26
+> **Last Updated:** 2026-04-28
 > **Architecture:** v2 (Vercel + Oracle + Supabase)
-> **Current Phase:** Phase 1 — Foundation
-> **Overall Progress:** ██████░░░░ 25%
+> **Current Phase:** Phase 1 → Phase 2 transition
+> **Overall Progress:** ██████████░░ 50%
 
 ---
 
@@ -17,139 +17,123 @@
 └── Display data           └── Binance API fetching
 ```
 
-### What Changed (v1 → v2)
-- ❌ Removed: Express.js backend → Next.js API Routes
-- ❌ Removed: SQLite → Supabase PostgreSQL
-- ❌ Removed: Redis → Next.js caching + Supabase
-- ✅ Added: Supabase Auth (Email + Google)
-- ✅ Added: Stripe ($19.99/mo subscription)
-- ✅ Added: 30-day free trial
-- ✅ Added: User registration required
+---
+
+## 🔄 Phase 1: Foundation ✅ COMPLETE
+
+| # | Task | Status |
+|---|------|--------|
+| 1 | Project structure | ✅ |
+| 2 | Next.js 16 + Tailwind 4 frontend | ✅ |
+| 3 | Python analysis engine (Flask + pandas-ta) | ✅ |
+| 4 | Vercel deployment | ✅ |
+| 5 | Supabase client setup (browser + server) | ✅ |
+| 6 | Auth middleware (protect routes) | ✅ |
+| 7 | Login page (Email + Google) | ✅ |
+| 8 | Signup page (30-day trial) | ✅ |
+| 9 | OAuth callback handler | ✅ |
+| 10 | Dashboard layout + sidebar nav | ✅ |
+| 11 | Dashboard page (stats + signals) | ✅ |
+| 12 | Signals page (table + filters + pagination) | ✅ |
+| 13 | Coins listing page (grid) | ✅ |
+| 14 | Coin detail page (chart placeholder + signals) | ✅ |
+| 15 | Profile page (subscription status) | ✅ |
+| 16 | Pricing page (Free Trial vs Pro) | ✅ |
+| 17 | Navbar (auth-aware) | ✅ |
+| 18 | Footer | ✅ |
+| 19 | Landing page (hero + features + CTA) | ✅ |
+| 20 | Database schema SQL migration | ✅ |
+| 21 | Design system (dark theme, badges, animations) | ✅ |
 
 ---
 
-## 🔄 Execution Log
+## 🔄 Phase 2: Data Pipeline (Days 4–7) ← CURRENT
 
-### Phase 1: Foundation (Days 1–3)
+| # | Task | Status |
+|---|------|--------|
+| 1 | **Run SQL migration** in Supabase SQL Editor | ⬜ ACTION NEEDED |
+| 2 | Set Supabase env vars in Vercel | ⬜ ACTION NEEDED |
+| 3 | Enable Google Auth in Supabase | ⬜ ACTION NEEDED |
+| 4 | Update Python → write to Supabase | ⬜ Next |
+| 5 | Test full data flow (Binance → Python → DB) | ⬜ Pending |
+| 6 | TradingView charts | ⬜ Pending |
+| 7 | Wire real data to dashboard | ⬜ Pending |
 
-| # | Task | Status | Notes |
-|---|------|--------|-------|
-| 1 | Project folder structure | ✅ Done | Created |
-| 2 | Frontend (Next.js 16 + Tailwind 4) | ✅ Done | Landing page, dark theme |
-| 3 | Python analysis engine | ✅ Done | Flask + pandas-ta + indicators |
-| 4 | Signal scoring system | ✅ Done | BUY/WATCH/WAIT logic |
-| 5 | Vercel deployment | ✅ Done | Fixed monorepo + lightningcss |
-| 6 | Docker setup (VPS) | ✅ Done | Python + Telegram only |
-| 7 | Set up Supabase project | ⬜ Next | Create project + tables |
-| 8 | Supabase Auth (signup/login) | ⬜ Next | Email + Google |
-| 9 | Auth middleware | ⬜ Next | Protect dashboard routes |
-| 10 | Connect Python → Supabase | ⬜ Next | Write signals to DB |
+## Phase 3: Payments (Days 8–9)
 
-### Phase 2: Dashboard + Data (Days 4–7)
+| # | Task | Status |
+|---|------|--------|
+| 1 | Stripe integration | ⬜ |
+| 2 | Checkout flow | ⬜ |
+| 3 | Webhook handler | ⬜ |
+| 4 | Trial expiry logic | ⬜ |
 
-| # | Task | Status | Notes |
-|---|------|--------|-------|
-| 1 | Real Binance data → Supabase | ⬜ Pending | — |
-| 2 | Dashboard with real signals | ⬜ Pending | — |
-| 3 | Signal cards + filters | ⬜ Pending | — |
-| 4 | TradingView charts | ⬜ Pending | — |
-| 5 | Tier-gated content | ⬜ Pending | Free trial vs Pro |
-| 6 | Coin detail page | ⬜ Pending | — |
+## Phase 4: Automation (Days 10–12)
 
-### Phase 3: Payments (Days 8–9)
+| # | Task | Status |
+|---|------|--------|
+| 1 | n8n workflows | ⬜ |
+| 2 | Telegram bot deploy | ⬜ |
+| 3 | Auto-alerts for paid users | ⬜ |
 
-| # | Task | Status | Notes |
-|---|------|--------|-------|
-| 1 | Stripe integration | ⬜ Pending | — |
-| 2 | Pricing page | ⬜ Pending | — |
-| 3 | Checkout flow | ⬜ Pending | — |
-| 4 | Webhook handler | ⬜ Pending | — |
-| 5 | Trial expiry logic | ⬜ Pending | — |
+## Phase 5: Launch (Days 13–14)
 
-### Phase 4: Automation (Days 10–12)
-
-| # | Task | Status | Notes |
-|---|------|--------|-------|
-| 1 | n8n workflows | ⬜ Pending | — |
-| 2 | Telegram bot | ✅ Done | Commands coded |
-| 3 | Auto-alerts | ⬜ Pending | — |
-
-### Phase 5: Launch (Days 13–14)
-
-| # | Task | Status | Notes |
-|---|------|--------|-------|
-| 1 | Deploy to Oracle VPS | ⬜ Pending | — |
-| 2 | Domain + SSL | ⬜ Pending | — |
-| 3 | Final QA | ⬜ Pending | — |
+| # | Task | Status |
+|---|------|--------|
+| 1 | Deploy to Oracle VPS | ⬜ |
+| 2 | Domain + SSL | ⬜ |
+| 3 | Final QA | ⬜ |
 
 ---
 
 ## 📦 Dependencies
 
-### Frontend (`frontend/package.json`)
+### Frontend (Installed ✅)
 
-| Package | Purpose | Status |
-|---------|---------|--------|
-| `next` 16.1.6 | Framework | ✅ Installed |
-| `react` 19.2.3 | UI | ✅ Installed |
-| `tailwindcss` ^4 | Styling | ✅ Installed |
-| `@supabase/supabase-js` | Auth + DB client | ⬜ Phase 1 |
-| `@supabase/ssr` | Server-side auth | ⬜ Phase 1 |
-| `stripe` | Payments (server) | ⬜ Phase 3 |
-| `@stripe/stripe-js` | Payments (client) | ⬜ Phase 3 |
-| `lightweight-charts` | TradingView charts | ⬜ Phase 2 |
-| `lucide-react` | Icons | ⬜ Phase 2 |
-| `swr` | Data fetching | ⬜ Phase 2 |
-| `clsx` | Conditional classes | ⬜ Phase 2 |
-| `framer-motion` | Animations | ⬜ Phase 2 |
+| Package | Status |
+|---------|--------|
+| `next` 16.1.6 | ✅ |
+| `react` 19.2.3 | ✅ |
+| `tailwindcss` ^4 | ✅ |
+| `@supabase/supabase-js` | ✅ |
+| `@supabase/ssr` | ✅ |
+| `lucide-react` | ✅ |
+| `clsx` | ✅ |
+| `swr` | ✅ |
 
-### Python (`analysis/requirements.txt`)
+### To Install Later
 
-| Package | Purpose | Status |
-|---------|---------|--------|
-| `flask` | HTTP API | ✅ Coded |
-| `pandas` | DataFrames | ✅ Coded |
-| `pandas-ta` | 150+ indicators | ✅ Coded |
-| `requests` | HTTP client | ✅ Coded |
-| `numpy` | Numerics | ✅ Coded |
-| `supabase` | Write to DB | ⬜ Phase 1 |
-| `gunicorn` | WSGI server | ⬜ Phase 5 |
-
-### Telegram Bot (`telegram-bot/package.json`)
-
-| Package | Purpose | Status |
-|---------|---------|--------|
-| `grammy` ^1.35 | Bot framework | ✅ Coded |
-| `dotenv` ^16 | Env vars | ✅ Coded |
-
-### Cloud Services
-
-| Service | Purpose | Status |
-|---------|---------|--------|
-| Vercel | Frontend hosting | ✅ Deployed |
-| Supabase | Auth + Database | ⬜ Create project |
-| Stripe | Payments | ⬜ Create account |
-| Oracle VPS | Python + n8n + Telegram | ⬜ Configure |
+| Package | Phase |
+|---------|-------|
+| `stripe` + `@stripe/stripe-js` | Phase 3 |
+| `lightweight-charts` | Phase 2 |
+| `framer-motion` | Phase 2 |
 
 ---
 
-## 🎯 Immediate Next Steps
+## 📄 All Pages Built
 
-1. **Create Supabase project** → supabase.com (free)
-2. **Run database migration** → Create tables
-3. **Install Supabase SDK** → `cd frontend && npm i @supabase/supabase-js @supabase/ssr`
-4. **Build auth pages** → Login, Signup, Google OAuth
-5. **Protect dashboard routes** → Middleware auth check
-6. **Update Python** → Write to Supabase instead of SQLite
+| Route | Type | Auth | Status |
+|-------|------|------|--------|
+| `/` | Landing | Public | ✅ |
+| `/login` | Auth | Public | ✅ |
+| `/signup` | Auth | Public | ✅ |
+| `/pricing` | Pricing | Public | ✅ |
+| `/auth/callback` | OAuth | Public | ✅ |
+| `/dashboard` | Dashboard | 🔒 Protected | ✅ |
+| `/signals` | Signals list | 🔒 Protected | ✅ |
+| `/coins` | Coins grid | 🔒 Protected | ✅ |
+| `/coins/[symbol]` | Coin detail | 🔒 Protected | ✅ |
+| `/profile` | User profile | 🔒 Protected | ✅ |
 
 ---
 
-## 📝 Architecture Notes
+## 🎯 Immediate Next Steps (User Actions)
 
-- **No Express.js** — Next.js API Routes handle all web API needs
-- **No Redis** — Supabase + Next.js ISR caching is sufficient
-- **No SQLite** — Supabase PostgreSQL (cloud, managed, free)
-- **Supabase Auth** — Email + Google login, 50K users/month free
-- **Stripe** — $0 until revenue, 2.9% + 30¢ per transaction
-- **Trial** — 30 days free, then $19.99/month
-- **VPS Load** — Only Python + n8n + Telegram (very light ~500MB)
+1. **Run SQL migration** → Go to Supabase → SQL Editor → Paste `supabase/migrations/001_initial_schema.sql` → Run
+2. **Set env vars in Vercel** → Project Settings → Environment Variables → Add:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+3. **Enable Google Auth** → Supabase → Authentication → Providers → Google → Enable
+4. **Redeploy** on Vercel
