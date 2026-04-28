@@ -1,6 +1,10 @@
+import Navbar from '@/app/components/Navbar';
+import Footer from '@/app/components/Footer';
+
 export default function Home() {
   return (
     <div>
+      <Navbar />
       {/* ========== Hero Section ========== */}
       <section className="min-h-screen flex items-center justify-center relative overflow-hidden"
         style={{ background: 'var(--gradient-hero)' }}>
@@ -42,10 +46,10 @@ export default function Home() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="/signals"
+            <a href="/signup"
               className="px-8 py-4 rounded-xl font-bold text-lg text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
               style={{ background: 'var(--gradient-primary)' }}>
-              View Live Signals →
+              Start Free Trial →
             </a>
             <a href="https://t.me/smartentry_signals" target="_blank" rel="noopener noreferrer"
               className="px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300 hover:-translate-y-1 glass"
@@ -65,8 +69,8 @@ export default function Home() {
               <div className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Live Analysis</div>
             </div>
             <div>
-              <div className="text-3xl md:text-4xl font-extrabold" style={{ color: 'var(--accent-purple)' }}>FREE</div>
-              <div className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>No Hidden Costs</div>
+              <div className="text-3xl md:text-4xl font-extrabold" style={{ color: 'var(--accent-purple)' }}>30</div>
+              <div className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Days Free Trial</div>
             </div>
           </div>
         </div>
@@ -135,13 +139,14 @@ export default function Home() {
           <p className="text-lg mb-8 max-w-2xl mx-auto" style={{ color: 'var(--text-secondary)' }}>
             Join thousands of traders using SmartEntry to make better decisions.
           </p>
-          <a href="/signals"
+          <a href="/signup"
             className="inline-block px-10 py-4 rounded-xl font-bold text-lg text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
             style={{ background: 'var(--gradient-primary)' }}>
-            Get Started — It&apos;s Free →
+            Start Free Trial →
           </a>
         </div>
       </section>
+      <Footer />
     </div>
   );
 }
