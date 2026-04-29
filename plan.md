@@ -373,49 +373,235 @@ smartentry/
 
 ---
 
+## 📚 Open Source References & Inspirations
+
+These battle-tested repos are used as reference for our analysis engine:
+
+| Repo | Stars | What We Take |
+|------|-------|-------------|
+| [CryptoSignal/Crypto-Signal](https://github.com/CryptoSignal/Crypto-Signal) | 5,500+ ⭐ | Ichimoku Cloud, MFI, OBV, VWAP algorithms, multi-exchange patterns |
+| [ccxt/ccxt](https://github.com/ccxt/ccxt) | 33,000+ ⭐ | Unified multi-exchange API (100+ exchanges), used for our data fetching |
+| [twopirllc/pandas-ta](https://github.com/twopirllc/pandas-ta) | 5,200+ ⭐ | Core TA library — 130+ indicators (RSI, MACD, BB, etc.) |
+| [bukosabino/ta](https://github.com/bukosabino/ta) | 4,400+ ⭐ | Additional TA reference — Bollinger %B, Keltner, Donchian |
+| [freqtrade/freqtrade](https://github.com/freqtrade/freqtrade) | 30,000+ ⭐ | Strategy patterns, backtesting logic, signal confidence scoring |
+| [jesse-ai/jesse](https://github.com/jesse-ai/jesse) | 5,800+ ⭐ | Advanced strategy framework, risk management patterns |
+| [tradingview/lightweight-charts](https://github.com/tradingview/lightweight-charts) | 9,500+ ⭐ | Our charting library on frontend |
+
+---
+
+## 🔄 Multi-Exchange Support (via ccxt)
+
+### Supported Exchanges (All Free Public APIs)
+
+| Exchange | Region | Free API | What We Fetch |
+|----------|--------|----------|---------------|
+| **Binance** | Global | ✅ | OHLCV, Ticker, Volume |
+| **Coinbase** | US/EU | ✅ | OHLCV, Ticker |
+| **Kraken** | Global | ✅ | OHLCV, Ticker |
+| **KuCoin** | Global | ✅ | OHLCV, Ticker, Volume |
+| **OKX** | Global | ✅ | OHLCV, Ticker |
+| **Bybit** | Global | ✅ | OHLCV, Ticker |
+
+### How ccxt Works for Us
+
+```python
+import ccxt
+
+# One unified API for ALL exchanges
+exchanges = {
+    'binance': ccxt.binance(),
+    'coinbase': ccxt.coinbase(),
+    'kraken': ccxt.kraken(),
+    'kucoin': ccxt.kucoin(),
+    'okx': ccxt.okx(),
+    'bybit': ccxt.bybit(),
+}
+
+# Same code works for ANY exchange
+for name, exchange in exchanges.items():
+    ohlcv = exchange.fetch_ohlcv('BTC/USDT', '1h', limit=100)
+    ticker = exchange.fetch_ticker('BTC/USDT')
+```
+
+### Benefits
+- **Cross-exchange signals** — compare prices across exchanges
+- **Arbitrage detection** — spot price differences
+- **Better accuracy** — aggregate data from multiple sources
+- **More coins** — some coins only on certain exchanges
+
+---
+
+## 📊 Enhanced Technical Indicators
+
+### Current Indicators (Phase 1 ✅)
+| Indicator | Category | Status |
+|-----------|----------|--------|
+| RSI (14) | Momentum | ✅ Done |
+| MACD (12,26,9) | Momentum | ✅ Done |
+| SMA (20, 50, 200) | Trend | ✅ Done |
+| EMA (12, 26) | Trend | ✅ Done |
+| Bollinger Bands (20,2) | Volatility | ✅ Done |
+| Volume Spike Detection | Volume | ✅ Done |
+
+### New Indicators (Phase 2 — from Crypto-Signal)
+| Indicator | Category | Source | Priority |
+|-----------|----------|--------|----------|
+| **Ichimoku Cloud** | Trend | Crypto-Signal | 🔴 High |
+| **MFI** (Money Flow Index) | Volume | Crypto-Signal | 🔴 High |
+| **OBV** (On-Balance Volume) | Volume | Crypto-Signal | 🟡 Medium |
+| **VWAP** (Volume Weighted Avg Price) | Volume | Crypto-Signal | 🟡 Medium |
+| **Stochastic RSI** | Momentum | pandas-ta | 🟡 Medium |
+| **ADX** (Average Directional Index) | Trend Strength | pandas-ta | 🟡 Medium |
+| **ATR** (Average True Range) | Volatility | pandas-ta | 🟢 Low |
+| **Fibonacci Retracement** | Support/Resistance | Custom | 🟢 Low |
+| **Bollinger %B** | Volatility | ta lib | 🟢 Low |
+| **Keltner Channel** | Volatility | ta lib | 🟢 Low |
+
+### Scoring System (Enhanced)
+```
+Signal Score = (
+  RSI Score (15%) +
+  MACD Score (15%) +
+  MA Cross Score (10%) +
+  Ichimoku Score (15%) +      ← NEW
+  MFI Score (10%) +           ← NEW
+  Volume Score (10%) +
+  OBV Score (10%) +           ← NEW
+  Stochastic RSI Score (10%) + ← NEW
+  ADX Score (5%)              ← NEW
+)
+
+BUY:   Score ≥ 70/100
+WATCH: Score 40-69/100
+WAIT:  Score < 40/100
+```
+
+---
+
+## 📰 Daily Market Reports (Auto-generated)
+
+### Concept
+Every morning, n8n triggers the Python engine to generate a **daily market report** — a human-readable article summarizing yesterday's market activity, top signals, and outlook. Published automatically to the website for SEO traffic.
+
+### Report Structure
+```
+📰 SmartEntry Daily Report — April 29, 2026
+═══════════════════════════════════════════
+
+🟢 Market Summary
+- BTC: $67,450 (+2.3%) — Bullish momentum continues
+- Total signals: 47 BUY, 23 WATCH, 30 WAIT
+
+🔥 Top BUY Signals
+1. ETH/USDT — Score 89/100 — RSI oversold bounce + MACD crossover
+2. SOL/USDT — Score 85/100 — Ichimoku bullish cloud breakout
+3. AVAX/USDT — Score 78/100 — Volume spike + MFI confirmation
+
+⚡ Key Events
+- BTC broke above 200 SMA for first time in 2 weeks
+- ETH volume 340% above average
+- 3 new BUY signals triggered overnight
+
+📊 Technical Outlook
+- Support: $65,200 | Resistance: $69,800
+- RSI: 58 (neutral-bullish)
+- Overall market: CAUTIOUSLY BULLISH
+```
+
+### Pipeline
+```
+n8n (6:00 AM UTC daily)
+  │
+  ├── Trigger Python analysis engine
+  │     └── Generate report from last 24h signals
+  │
+  ├── Save report to Supabase (reports table)
+  │
+  ├── Publish to website (/reports page)
+  │
+  ├── Send to Telegram channel
+  │
+  └── Email to Pro subscribers
+```
+
+### Database Addition
+```sql
+CREATE TABLE IF NOT EXISTS reports (
+  id BIGSERIAL PRIMARY KEY,
+  title TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  content TEXT NOT NULL,          -- Markdown content
+  summary TEXT,                   -- Short summary for cards
+  market_sentiment TEXT,          -- BULLISH, BEARISH, NEUTRAL
+  btc_price DOUBLE PRECISION,
+  total_buy_signals INTEGER,
+  total_watch_signals INTEGER,
+  total_wait_signals INTEGER,
+  published_at TIMESTAMPTZ DEFAULT now(),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX idx_reports_published ON reports(published_at DESC);
+CREATE INDEX idx_reports_slug ON reports(slug);
+```
+
+### Frontend Pages
+- `/reports` — List of all daily reports (public, SEO-friendly)
+- `/reports/[slug]` — Individual report page (public)
+- Widget on dashboard showing latest report summary
+
+---
+
 ## 🗓️ Updated Phase Plan
 
-### PHASE 1: Foundation (Days 1–3)
+### PHASE 1: Foundation (Days 1–3) ✅ COMPLETE
 - [x] Project structure
-- [x] Frontend template (Next.js + Tailwind)
-- [x] Python analysis engine
+- [x] Frontend template (Next.js 16 + Tailwind 4)
+- [x] Python analysis engine (RSI, MACD, SMA, EMA, BB)
 - [x] Docker setup
-- [ ] **NEW: Set up Supabase project** (create tables, enable auth)
-- [ ] **NEW: Supabase Auth integration** (signup, login, Google)
-- [ ] **NEW: Auth middleware** (protect dashboard routes)
-- [ ] Connect Python → Supabase (write signals)
+- [x] Supabase project setup (tables, auth, RLS)
+- [x] Auth system (Email + Google login)
+- [x] Auth middleware (protected routes)
+- [x] All pages (dashboard, signals, coins, profile, pricing)
+- [x] Vercel deployment
 
-### PHASE 2: Dashboard + Data (Days 4–7)
-- [ ] Fetch real data from Binance → Python → Supabase
-- [ ] Build dashboard with real signals
-- [ ] Signal cards, tables, filters
+### PHASE 2: Data Pipeline + Enhanced Analysis (Days 4–7) ← CURRENT
+- [ ] Install ccxt for multi-exchange support
+- [ ] Connect Python → Supabase (write signals)
+- [ ] Fetch real data from Binance + 5 exchanges
+- [ ] Add new indicators (Ichimoku, MFI, OBV, VWAP, StochRSI, ADX)
+- [ ] Enhanced scoring system (9 indicators)
 - [ ] TradingView charts on coin detail page
 - [ ] Tier-gated content (free trial vs pro)
+- [ ] Wire real signals to dashboard
 
 ### PHASE 3: Payments + Subscriptions (Days 8–9)
 - [ ] Stripe integration
-- [ ] Pricing page
 - [ ] Checkout flow
 - [ ] Webhook → update subscription in Supabase
 - [ ] 30-day trial logic
 - [ ] Expired trial → redirect to pricing
 
-### PHASE 4: Automation + Alerts (Days 10–12)
-- [ ] n8n workflows
-- [ ] Telegram bot
-- [ ] Auto-alerts for paid users
-- [ ] Daily reports
+### PHASE 4: Daily Reports + Automation (Days 10–12)
+- [ ] Python report generator
+- [ ] Reports database table
+- [ ] `/reports` and `/reports/[slug]` pages
+- [ ] n8n daily cron workflow (6 AM UTC)
+- [ ] Telegram bot alerts
+- [ ] Email reports to Pro subscribers
+- [ ] Dashboard report widget
 
 ### PHASE 5: Deployment + Launch (Days 13–14)
-- [ ] Deploy Python + Telegram to Oracle VPS
-- [ ] Configure n8n workflows
+- [ ] Deploy Python + Telegram + n8n to Oracle VPS
+- [ ] Configure all n8n workflows
 - [ ] Domain + SSL
+- [ ] SEO optimization (reports = organic traffic)
 - [ ] Final QA
-- [ ] Launch
+- [ ] Launch 🚀
 
 ---
 
-## 🔑 Environment Variables (Updated)
+## 🔑 Environment Variables
 
 ```env
 # === Supabase ===
@@ -431,7 +617,6 @@ STRIPE_PRICE_ID=price_xxxxx
 
 # === Binance (no auth needed) ===
 BINANCE_BASE_URL=https://api.binance.com
-BINANCE_AFFILIATE_REF=your_referral_id
 NEXT_PUBLIC_BINANCE_AFFILIATE_REF=your_referral_id
 
 # === Telegram Bot ===
@@ -447,15 +632,15 @@ SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIs...
 
 ## ✅ Pre-Implementation Checklist
 
-- [ ] Create Supabase project (supabase.com — free)
+- [x] Create Supabase project ✅
+- [x] Run SQL migration ✅
+- [x] Set Supabase env vars in Vercel ✅
+- [x] Enable Google Auth ✅
 - [ ] Create Stripe account (stripe.com — free)
-- [ ] Get Supabase URL + keys
-- [ ] Get Stripe keys
-- [ ] Enable Google Auth in Supabase dashboard
 - [ ] Domain name ready?
 - [ ] Oracle VPS SSH access working?
 - [ ] Telegram bot created via @BotFather?
 
 ---
 
-> **Next Step:** Set up Supabase + Auth + update the codebase to use the new architecture.
+> **Current Focus:** Phase 2 — Connect real data pipeline, add enhanced indicators, multi-exchange support.
