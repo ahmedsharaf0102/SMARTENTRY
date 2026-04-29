@@ -1,144 +1,189 @@
 """
-SmartEntry Analysis Engine — Flask API
-Provides endpoints for running technical analysis on crypto market data.
+SmartEntry Analysis Engine
+Main entry point — fetches data from Binance, calculates indicators,
+generates signals, and writes everything to Supabase.
+
+Can be run:
+  - Directly: python app.py
+  - As Flask API: serves /analyze and /health endpoints
+  - Via n8n: triggered by cron every 5 minutes
 """
 import os
 import json
-from flask import Flask, request, jsonify
+import traceback
+from flask import Flask, jsonify
+from dotenv import load_dotenv
+
 from engine.indicators import calculate_indicators
 from engine.signals import generate_signals
-from utils.binance_client import fetch_klines, fetch_top_pairs
-import sqlite3
+from utils.binance_client import fetch_klines, get_top_coins
+from utils.supabase_client import upsert_coins, insert_signals, insert_candles
+
+load_dotenv()
 
 app = Flask(__name__)
 
-DB_PATH = os.environ.get('DB_PATH', os.path.join(os.path.dirname(__file__), '..', 'data', 'smartentry.db'))
+# ── Top coins to track ──────────────────────────────────
+DEFAULT_COINS = [
+    'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT',
+    'ADAUSDT', 'DOGEUSDT', 'AVAXUSDT', 'DOTUSDT', 'LINKUSDT',
+    'MATICUSDT', 'SHIBUSDT', 'LTCUSDT', 'ATOMUSDT', 'NEARUSDT',
+    'UNIUSDT', 'APTUSDT', 'ARBUSDT', 'OPUSDT', 'SUIUSDT',
+    'PEPEUSDT', 'WIFUSDT', 'INJUSDT', 'TIAUSDT', 'SEIUSDT',
+    'FETUSDT', 'RENDERUSDT', 'STXUSDT', 'IMXUSDT', 'RUNEUSDT',
+]
 
 
-def get_db():
-    """Get SQLite database connection."""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+def run_analysis(symbols: list[str] | None = None) -> dict:
+    """
+    Run the full analysis pipeline:
+    1. Fetch OHLCV data from Binance
+    2. Calculate technical indicators
+    3. Generate signals
+    4. Write everything to Supabase
+    """
+    symbols = symbols or DEFAULT_COINS
+    results = {
+        'analyzed': 0,
+        'signals_generated': 0,
+        'errors': [],
+        'signals': [],
+    }
+
+    # Step 1: Register coins in Supabase
+    coins_data = []
+    for symbol in symbols:
+        base = symbol.replace('USDT', '')
+        coins_data.append({
+            'symbol': symbol,
+            'base_asset': base,
+            'quote_asset': 'USDT',
+            'is_active': True,
+        })
+
+    try:
+        upsert_coins(coins_data)
+    except Exception as e:
+        results['errors'].append(f"Coins upsert failed: {str(e)}")
+        print(f"❌ Coins upsert error: {e}")
+
+    # Step 2: Analyze each coin
+    for symbol in symbols:
+        try:
+            print(f"\n📊 Analyzing {symbol}...")
+
+            # Fetch 1h candles (100 candles = ~4 days of data)
+            klines = fetch_klines(symbol, interval='1h', limit=100)
+            if not klines or len(klines) < 50:
+                print(f"  ⚠️ Not enough data for {symbol}")
+                continue
+
+            # Save candles to Supabase
+            candle_records = []
+            for k in klines[-20:]:  # Save last 20 candles
+                candle_records.append({
+                    'symbol': symbol,
+                    'interval': '1h',
+                    'open_time': k['open_time'],
+                    'open': k['open'],
+                    'high': k['high'],
+                    'low': k['low'],
+                    'close': k['close'],
+                    'volume': k['volume'],
+                    'close_time': k.get('close_time'),
+                })
+
+            try:
+                insert_candles(candle_records)
+            except Exception as e:
+                print(f"  ⚠️ Candle insert error: {e}")
+
+            # Calculate indicators
+            indicators = calculate_indicators(klines)
+            if not indicators:
+                print(f"  ⚠️ Could not calculate indicators for {symbol}")
+                continue
+
+            # Generate signals
+            signals = generate_signals(symbol, indicators, indicators['current_price'])
+
+            if signals:
+                insert_signals(signals)
+                results['signals'].extend(signals)
+                results['signals_generated'] += len(signals)
+                for s in signals:
+                    emoji = '🟢' if s['action'] == 'BUY' else '🟡' if s['action'] == 'WATCH' else '🔴'
+                    print(f"  {emoji} {s['action']} — {s['signal_type']} (strength: {s['strength']})")
+            else:
+                print(f"  ⚪ No signals for {symbol}")
+
+            results['analyzed'] += 1
+
+        except Exception as e:
+            error_msg = f"{symbol}: {str(e)}"
+            results['errors'].append(error_msg)
+            print(f"  ❌ Error: {e}")
+            traceback.print_exc()
+
+    print(f"\n{'='*50}")
+    print(f"✅ Analysis complete: {results['analyzed']} coins, {results['signals_generated']} signals")
+    if results['errors']:
+        print(f"⚠️ Errors: {len(results['errors'])}")
+    print(f"{'='*50}")
+
+    return results
 
 
-@app.route('/health', methods=['GET'])
+# ── Flask Routes ────────────────────────────────────────
+
+@app.route('/health')
 def health():
-    """Health check endpoint."""
     return jsonify({'status': 'ok', 'service': 'smartentry-analysis'})
 
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
-    """
-    Run full analysis pipeline:
-    1. Fetch top USDT pairs from Binance
-    2. Fetch kline data for each pair
-    3. Calculate technical indicators
-    4. Generate trading signals
-    5. Store results in SQLite
-    """
+    """Trigger analysis — called by n8n cron."""
     try:
-        data = request.get_json() or {}
-        limit = data.get('limit', 50)
-        intervals = data.get('intervals', ['1h', '4h', '1d'])
-
-        # Step 1: Get top pairs
-        pairs = fetch_top_pairs(limit=limit)
-        if not pairs:
-            return jsonify({'error': 'Failed to fetch pairs from Binance'}), 500
-
-        db = get_db()
-        all_signals = []
-
-        for symbol in pairs:
-            try:
-                # Ensure coin exists in DB
-                db.execute(
-                    'INSERT OR IGNORE INTO coins (symbol, base_asset, quote_asset) VALUES (?, ?, ?)',
-                    (symbol, symbol.replace('USDT', ''), 'USDT')
-                )
-
-                for interval in intervals:
-                    # Step 2: Fetch klines
-                    klines = fetch_klines(symbol, interval, limit=200)
-                    if not klines:
-                        continue
-
-                    # Store candles
-                    for k in klines:
-                        db.execute('''
-                            INSERT OR REPLACE INTO candles 
-                            (symbol, interval, open_time, open, high, low, close, volume, close_time)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        ''', (
-                            symbol, interval,
-                            k['open_time'], k['open'], k['high'], k['low'],
-                            k['close'], k['volume'], k['close_time']
-                        ))
-
-                    # Step 3: Calculate indicators
-                    indicators = calculate_indicators(klines)
-                    if not indicators:
-                        continue
-
-                    # Step 4: Generate signals (only on primary interval)
-                    if interval == '1h':
-                        signals = generate_signals(symbol, indicators, klines[-1]['close'])
-                        for signal in signals:
-                            db.execute('''
-                                INSERT INTO signals 
-                                (symbol, signal_type, action, strength, price_at_signal, details)
-                                VALUES (?, ?, ?, ?, ?, ?)
-                            ''', (
-                                signal['symbol'],
-                                signal['signal_type'],
-                                signal['action'],
-                                signal['strength'],
-                                signal['price_at_signal'],
-                                json.dumps(signal['details'])
-                            ))
-                            all_signals.append(signal)
-
-            except Exception as e:
-                app.logger.warning(f'Error analyzing {symbol}: {e}')
-                continue
-
-        db.commit()
-        db.close()
-
+        results = run_analysis()
         return jsonify({
-            'status': 'ok',
-            'pairs_analyzed': len(pairs),
-            'signals_generated': len(all_signals),
-            'signals': all_signals
+            'success': True,
+            'analyzed': results['analyzed'],
+            'signals': results['signals_generated'],
+            'errors': len(results['errors']),
         })
-
     except Exception as e:
-        app.logger.error(f'Analysis failed: {e}')
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@app.route('/indicators/<symbol>', methods=['GET'])
-def get_indicators(symbol):
-    """Get calculated indicators for a specific symbol."""
+@app.route('/analyze/<symbol>', methods=['GET'])
+def analyze_single(symbol: str):
+    """Analyze a single coin."""
+    symbol = symbol.upper()
+    if not symbol.endswith('USDT'):
+        symbol += 'USDT'
     try:
-        interval = request.args.get('interval', '1h')
-        klines = fetch_klines(symbol.upper(), interval, limit=200)
-
-        if not klines:
-            return jsonify({'error': f'No data for {symbol}'}), 404
-
-        indicators = calculate_indicators(klines)
+        results = run_analysis([symbol])
         return jsonify({
-            'symbol': symbol.upper(),
-            'interval': interval,
-            'indicators': indicators
+            'success': True,
+            'symbol': symbol,
+            'signals': results['signals'],
         })
-
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
+
+# ── CLI Mode ─────────────────────────────────────────────
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    port = int(os.environ.get('PORT', 5000))
+
+    # If SUPABASE_URL is set, run analysis immediately
+    if os.environ.get('SUPABASE_URL'):
+        print("🚀 Running initial analysis...")
+        run_analysis()
+        print("\n🌐 Starting Flask server...")
+    else:
+        print("⚠️ SUPABASE_URL not set — running Flask server only")
+
+    app.run(host='0.0.0.0', port=port, debug=False)

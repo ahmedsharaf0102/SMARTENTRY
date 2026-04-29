@@ -5,25 +5,15 @@ __pycache__/
 .venv/
 venv/
 
+# Next.js
+.next/
+out/
+
 # Environment
 .env
 .env.local
-.env.production
-
-# Build output
-.next/
-out/
-dist/
-build/
-
-# Database
-data/
-*.db
-*.db-wal
-*.db-shm
-
-# Docker
-docker/data/
+.env.*.local
+analysis/.env
 
 # IDE
 .vscode/
@@ -33,10 +23,5 @@ docker/data/
 .DS_Store
 Thumbs.db
 
-# Logs
-logs/
-*.log
-npm-debug.log*
-
-# Testing
-coverage/
+# Build
+*.tsbuildinfo

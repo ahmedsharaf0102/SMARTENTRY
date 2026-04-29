@@ -1,90 +1,70 @@
 """
-Binance API Client
-Fetches market data using only FREE public endpoints (no API key required).
+Binance Public API Client
+Fetches OHLCV (candlestick) data from Binance.
+No API key required — uses public endpoints only.
+
+Rate Limits:
+  - 1200 weight per minute
+  - Klines request = ~1 weight per call
+  - With 30 coins × 1 call = 30 weight per cycle (well within limits)
 """
 import time
 import requests
 
 BASE_URL = 'https://api.binance.com'
-
-# Rate limiting: track weight usage
-_weight_used = 0
-_weight_reset_time = 0
+WEIGHT_USED = 0
+WEIGHT_LIMIT = 1200
+LAST_RESET = time.time()
 
 
 def _check_rate_limit():
-    """Simple rate limiter — pause if we're using too much weight."""
-    global _weight_used, _weight_reset_time
+    """Reset weight counter every 60 seconds."""
+    global WEIGHT_USED, LAST_RESET
     now = time.time()
-    if now > _weight_reset_time:
-        _weight_used = 0
-        _weight_reset_time = now + 60  # Reset every minute
-    if _weight_used > 1000:  # Leave 200 weight buffer
-        sleep_time = _weight_reset_time - now
-        if sleep_time > 0:
-            time.sleep(sleep_time)
-        _weight_used = 0
+    if now - LAST_RESET >= 60:
+        WEIGHT_USED = 0
+        LAST_RESET = now
 
 
-def fetch_top_pairs(limit: int = 50) -> list[str]:
+def fetch_klines(symbol: str, interval: str = '1h', limit: int = 100) -> list[dict]:
     """
-    Fetch top USDT trading pairs by 24h volume.
-    API Weight: 40
-    """
-    global _weight_used
-    _check_rate_limit()
+    Fetch candlestick data from Binance.
 
-    try:
-        resp = requests.get(f'{BASE_URL}/api/v3/ticker/24hr', timeout=10)
-        _weight_used += 40
-        resp.raise_for_status()
-        data = resp.json()
-
-        # Filter USDT pairs with meaningful volume
-        usdt_pairs = [
-            t for t in data
-            if t['symbol'].endswith('USDT')
-            and float(t.get('quoteVolume', 0)) > 100000
-        ]
-
-        # Sort by quote volume descending
-        usdt_pairs.sort(key=lambda x: float(x.get('quoteVolume', 0)), reverse=True)
-
-        return [p['symbol'] for p in usdt_pairs[:limit]]
-
-    except Exception as e:
-        print(f'Error fetching top pairs: {e}')
-        return []
-
-
-def fetch_klines(symbol: str, interval: str = '1h', limit: int = 200) -> list[dict]:
-    """
-    Fetch kline/candlestick data for a symbol.
-    API Weight: 2
-    
     Args:
         symbol: Trading pair (e.g., 'BTCUSDT')
-        interval: Kline interval (e.g., '1h', '4h', '1d')
+        interval: Candle interval ('1m', '5m', '15m', '1h', '4h', '1d')
         limit: Number of candles (max 1000)
-    
+
     Returns:
-        List of OHLCV dicts
+        List of OHLCV dictionaries
     """
-    global _weight_used
+    global WEIGHT_USED
     _check_rate_limit()
 
-    try:
-        resp = requests.get(
-            f'{BASE_URL}/api/v3/klines',
-            params={'symbol': symbol, 'interval': interval, 'limit': limit},
-            timeout=10
-        )
-        _weight_used += 2
-        resp.raise_for_status()
-        data = resp.json()
+    if WEIGHT_USED >= WEIGHT_LIMIT - 10:
+        print(f"  ⚠️ Rate limit approaching ({WEIGHT_USED}/{WEIGHT_LIMIT}), waiting...")
+        time.sleep(60)
+        WEIGHT_USED = 0
 
-        return [
-            {
+    url = f"{BASE_URL}/api/v3/klines"
+    params = {
+        'symbol': symbol,
+        'interval': interval,
+        'limit': limit,
+    }
+
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        WEIGHT_USED += 1
+
+        if response.status_code != 200:
+            print(f"  ❌ Binance API error {response.status_code}: {response.text[:200]}")
+            return []
+
+        data = response.json()
+        klines = []
+        for k in data:
+            klines.append({
                 'open_time': int(k[0]),
                 'open': float(k[1]),
                 'high': float(k[2]),
@@ -92,31 +72,67 @@ def fetch_klines(symbol: str, interval: str = '1h', limit: int = 200) -> list[di
                 'close': float(k[4]),
                 'volume': float(k[5]),
                 'close_time': int(k[6]),
-            }
-            for k in data
+                'quote_volume': float(k[7]),
+                'trades': int(k[8]),
+            })
+
+        return klines
+
+    except requests.exceptions.Timeout:
+        print(f"  ❌ Timeout fetching {symbol}")
+        return []
+    except Exception as e:
+        print(f"  ❌ Error fetching {symbol}: {e}")
+        return []
+
+
+def get_top_coins(limit: int = 30) -> list[str]:
+    """
+    Get top trading pairs by 24h volume from Binance.
+
+    Returns:
+        List of symbol strings (e.g., ['BTCUSDT', 'ETHUSDT', ...])
+    """
+    global WEIGHT_USED
+    _check_rate_limit()
+
+    url = f"{BASE_URL}/api/v3/ticker/24hr"
+    try:
+        response = requests.get(url, timeout=15)
+        WEIGHT_USED += 40  # This endpoint costs 40 weight
+
+        if response.status_code != 200:
+            return []
+
+        tickers = response.json()
+        # Filter USDT pairs only, sort by volume
+        usdt_pairs = [
+            t for t in tickers
+            if t['symbol'].endswith('USDT')
+            and not t['symbol'].endswith('DOWNUSDT')
+            and not t['symbol'].endswith('UPUSDT')
+            and float(t['quoteVolume']) > 0
         ]
 
+        usdt_pairs.sort(key=lambda x: float(x['quoteVolume']), reverse=True)
+        return [t['symbol'] for t in usdt_pairs[:limit]]
+
     except Exception as e:
-        print(f'Error fetching klines for {symbol}: {e}')
+        print(f"  ❌ Error fetching top coins: {e}")
         return []
 
 
 def fetch_current_price(symbol: str) -> float | None:
-    """
-    Fetch current price for a symbol.
-    API Weight: 2
-    """
-    global _weight_used
+    """Fetch the current price for a symbol."""
+    global WEIGHT_USED
     _check_rate_limit()
 
+    url = f"{BASE_URL}/api/v3/ticker/price"
     try:
-        resp = requests.get(
-            f'{BASE_URL}/api/v3/ticker/price',
-            params={'symbol': symbol},
-            timeout=5
-        )
-        _weight_used += 2
-        resp.raise_for_status()
-        return float(resp.json()['price'])
+        response = requests.get(url, params={'symbol': symbol}, timeout=5)
+        WEIGHT_USED += 1
+        if response.status_code == 200:
+            return float(response.json()['price'])
     except Exception:
-        return None
+        pass
+    return None
