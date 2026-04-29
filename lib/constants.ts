@@ -1,10 +1,13 @@
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
-export const BINANCE_AFFILIATE_REF = process.env.NEXT_PUBLIC_BINANCE_AFFILIATE_REF || '';
+export const BINANCE_REF_CODE = process.env.NEXT_PUBLIC_BINANCE_AFFILIATE_REF || 'GRO_28502_BM9FA';
 
-export const BINANCE_REFERRAL_URL = BINANCE_AFFILIATE_REF
-  ? `https://www.binance.com/en/register?ref=${BINANCE_AFFILIATE_REF}`
-  : 'https://www.binance.com';
+export const BINANCE_REFERRAL_URL = `https://www.binance.com/en/register?ref=${BINANCE_REF_CODE}`;
+
+export function getBinanceTradeUrl(symbol: string): string {
+  const base = symbol.replace('USDT', '');
+  return `https://www.binance.com/en/trade/${base}_USDT?ref=${BINANCE_REF_CODE}`;
+}
 
 /**
  * Signal action labels and colors

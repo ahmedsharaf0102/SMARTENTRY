@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
+import { getBinanceTradeUrl } from '@/lib/constants';
 import CoinChartSection from './CoinChartSection';
 
 export default async function CoinDetailPage({ params }: { params: Promise<{ symbol: string }> }) {
@@ -65,7 +66,7 @@ export default async function CoinDetailPage({ params }: { params: Promise<{ sym
             </p>
           </div>
         </div>
-        <a href={`https://www.binance.com/en/trade/${sym.replace('USDT', '')}_USDT`}
+        <a href={getBinanceTradeUrl(sym)}
           target="_blank" rel="noopener noreferrer"
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white hover:-translate-y-0.5 transition-all"
           style={{ background: 'var(--gradient-primary)' }}>
