@@ -9,29 +9,17 @@ export default async function CoinDetailPage({ params }: { params: Promise<{ sym
   const sym = symbol.toUpperCase();
   const supabase = await createClient();
 
-  const [coinRes, signalsRes, candlesRes] = await Promise.all([
+  const [coinRes, signalsRes] = await Promise.all([
     supabase.from('coins').select('*').eq('symbol', sym).single(),
     supabase.from('signals').select('*').eq('symbol', sym)
       .order('created_at', { ascending: false }).limit(10),
-    supabase.from('candles').select('*').eq('symbol', sym).eq('interval', '1h')
-      .order('open_time', { ascending: true }).limit(100),
   ]);
 
   const coin = coinRes.data;
   const signals = signalsRes.data || [];
-  const candles = candlesRes.data || [];
-
-  // Format candles for chart
-  const chartData = candles.map((c) => ({
-    time: new Date(c.open_time).toISOString().split('T')[0],
-    open: c.open,
-    high: c.high,
-    low: c.low,
-    close: c.close,
-  }));
 
   const latestSignal = signals[0];
-  const latestPrice = latestSignal?.price_at_signal || candles[candles.length - 1]?.close;
+  const latestPrice = latestSignal?.price_at_signal;
 
   return (
     <div className="fade-in">
@@ -78,7 +66,7 @@ export default async function CoinDetailPage({ params }: { params: Promise<{ sym
         {/* Chart */}
         <div className="lg:col-span-2 card p-6">
           <h2 className="font-bold mb-4">Price Chart (1H)</h2>
-          <CoinChartSection data={chartData} />
+          <CoinChartSection symbol={sym} />
         </div>
 
         {/* Signal History */}

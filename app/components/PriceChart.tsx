@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import { createChart, ColorType, CandlestickSeries, type IChartApi } from 'lightweight-charts';
 
 interface CandleData {
-  time: string;
+  time: number;
   open: number;
   high: number;
   low: number;
@@ -22,6 +22,12 @@ export default function PriceChart({ data, height = 350 }: PriceChartProps) {
 
   useEffect(() => {
     if (!chartContainerRef.current || data.length === 0) return;
+
+    // Clean up previous chart
+    if (chartRef.current) {
+      chartRef.current.remove();
+      chartRef.current = null;
+    }
 
     const chart = createChart(chartContainerRef.current, {
       layout: {
@@ -44,12 +50,12 @@ export default function PriceChart({ data, height = 350 }: PriceChartProps) {
       timeScale: {
         borderColor: 'rgba(255, 255, 255, 0.08)',
         timeVisible: true,
+        secondsVisible: false,
       },
       width: chartContainerRef.current.clientWidth,
       height: height,
     });
 
-    // v5 API: use addSeries with CandlestickSeries
     const candleSeries = chart.addSeries(CandlestickSeries, {
       upColor: '#00d68f',
       downColor: '#ff3d71',
@@ -73,6 +79,7 @@ export default function PriceChart({ data, height = 350 }: PriceChartProps) {
     return () => {
       window.removeEventListener('resize', handleResize);
       chart.remove();
+      chartRef.current = null;
     };
   }, [data, height]);
 
