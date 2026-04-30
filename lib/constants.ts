@@ -10,18 +10,41 @@ export function getBinanceTradeUrl(symbol: string): string {
 }
 
 /**
- * Signal action labels and colors
+ * Get the CSS class for a signal action badge
+ */
+export function getActionBadgeClass(action: string): string {
+  switch (action) {
+    case 'STRONG_BUY': return 'badge-strong-buy';
+    case 'BUY': return 'badge-buy';
+    case 'WATCH': return 'badge-watch';
+    case 'WAIT': return 'badge-wait';
+    case 'AVOID': return 'badge-avoid';
+    default: return 'badge-wait';
+  }
+}
+
+/**
+ * Signal action display labels
  */
 export const SIGNAL_ACTIONS = {
+  STRONG_BUY: { label: 'STRONG BUY', color: 'var(--accent-green)', class: 'badge-strong-buy' },
   BUY: { label: 'BUY', color: 'var(--accent-green)', class: 'badge-buy' },
   WATCH: { label: 'WATCH', color: 'var(--accent-yellow)', class: 'badge-watch' },
   WAIT: { label: 'WAIT', color: 'var(--accent-red)', class: 'badge-wait' },
+  AVOID: { label: 'AVOID', color: 'var(--text-muted)', class: 'badge-avoid' },
 } as const;
 
 /**
- * Signal types with human-readable labels
+ * Signal types — v2 (12-indicator system)
  */
 export const SIGNAL_TYPES = {
+  FULL_CONVERGENCE: 'Full Convergence',
+  RSI_MOMENTUM_CONVERGENCE: 'RSI + Momentum Convergence',
+  ICHIMOKU_BREAKOUT: 'Ichimoku Breakout',
+  MOMENTUM_SURGE: 'Momentum Surge',
+  TREND_REVERSAL: 'Trend Reversal',
+  VOLUME_ACCUMULATION: 'Volume Accumulation',
+  // Legacy types
   RSI_OVERSOLD: 'RSI Oversold',
   RSI_OVERBOUGHT: 'RSI Overbought',
   MACD_CROSSOVER: 'MACD Crossover',
@@ -33,7 +56,7 @@ export const SIGNAL_TYPES = {
  * Refresh intervals (in milliseconds)
  */
 export const REFRESH_INTERVALS = {
-  SIGNALS: 60_000,      // 1 minute
-  PRICES: 30_000,       // 30 seconds
-  MARKET_OVERVIEW: 120_000, // 2 minutes
+  SIGNALS: 60_000,
+  PRICES: 30_000,
+  MARKET_OVERVIEW: 120_000,
 } as const;

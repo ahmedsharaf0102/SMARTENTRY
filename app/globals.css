@@ -96,6 +96,18 @@ body {
   transform: translateY(-2px);
 }
 
+.badge-strong-buy {
+  background: linear-gradient(135deg, rgba(0, 214, 143, 0.25), rgba(255, 170, 0, 0.15));
+  color: #00d68f;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  box-shadow: 0 0 12px rgba(0, 214, 143, 0.3);
+}
+
 .badge-buy {
   background: var(--accent-green-dim);
   color: var(--accent-green);
@@ -121,6 +133,17 @@ body {
 .badge-watch {
   background: var(--accent-yellow-dim);
   color: var(--accent-yellow);
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge-avoid {
+  background: rgba(100, 100, 100, 0.15);
+  color: #8b95a5;
   font-weight: 700;
   padding: 4px 12px;
   border-radius: 8px;
