@@ -9,8 +9,8 @@ gunicorn==22.0.0
 pandas==2.1.4
 numpy>=1.24,<2.0
 
-# Technical indicators — installed from GitHub (PyPI removed Python 3.10 builds)
-pandas-ta @ git+https://github.com/twopirllc/pandas_ta.git
+# Technical indicators (stable, maintained, PyPI available)
+ta==0.11.0
 
 # HTTP client
 requests==2.31.0
