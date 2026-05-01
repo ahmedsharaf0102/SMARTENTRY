@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
-import { getBinanceTradeUrl } from '@/lib/constants';
+import { GOLD_REFERRAL_URL } from '@/lib/constants';
 import GoldTabs from './GoldTabs';
 
 export default async function GoldPage() {
@@ -58,7 +58,7 @@ export default async function GoldPage() {
             </p>
           </div>
         </div>
-        <a href="https://www.binance.com/en/trade/PAXG_USDT?ref=GRO_28502_BM9FA"
+        <a href={GOLD_REFERRAL_URL}
           target="_blank" rel="noopener noreferrer"
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-black hover:-translate-y-0.5 transition-all"
           style={{ background: 'linear-gradient(135deg, #FFD700, #FFA500)' }}>

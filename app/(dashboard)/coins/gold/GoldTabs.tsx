@@ -53,8 +53,8 @@ export default function GoldTabs({ signals, macro }: GoldTabsProps) {
 // ═══════════════════════════════════════════════════
 function ChartTab() {
   return (
-    <div className="card p-4 overflow-hidden">
-      <TradingViewChart symbol="OANDA:XAUUSD" height={600} />
+    <div className="card p-2 overflow-hidden">
+      <TradingViewChart symbol="OANDA:XAUUSD" fullScreen />
     </div>
   );
 }

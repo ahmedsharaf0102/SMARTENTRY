@@ -16,8 +16,9 @@ from dotenv import load_dotenv
 
 from engine.indicators import calculate_indicators
 from engine.signals import generate_signals
+from engine.gold_signals import generate_gold_signal
 from utils.binance_client import fetch_klines, get_top_coins
-from utils.supabase_client import upsert_coins, insert_signals, insert_candles
+from utils.supabase_client import upsert_coins, insert_signals, insert_candles, upsert_gold_macro
 
 load_dotenv()
 
@@ -134,6 +135,44 @@ def run_analysis(symbols: list[str] | None = None) -> dict:
     return results
 
 
+def run_gold_analysis() -> dict | None:
+    """Run gold-specific analysis (macro + technical)."""
+    try:
+        signal = generate_gold_signal()
+        if signal:
+            # Register XAUUSD as a coin
+            upsert_coins([{
+                'symbol': 'XAUUSD',
+                'base_asset': 'XAU',
+                'quote_asset': 'USD',
+                'is_active': True,
+            }])
+            insert_signals([signal])
+
+            # Save macro data for frontend
+            if signal['details'].get('macro_breakdown'):
+                macro_record = {
+                    'macro_score': signal['details']['macro_score'],
+                    'tech_score': signal['details']['tech_score'],
+                    'total_score': signal['details']['total_score'],
+                    'data': {k: v.get('current') if isinstance(v, dict) else v
+                             for k, v in signal['details'].get('macro_breakdown', {}).items()},
+                    'scores': {k: v.get('score', 0) if isinstance(v, dict) else 0
+                               for k, v in signal['details'].get('macro_breakdown', {}).items()},
+                }
+                try:
+                    upsert_gold_macro(macro_record)
+                except Exception as e:
+                    print(f'  ⚠️ Gold macro save error: {e}')
+
+            return signal
+    except Exception as e:
+        print(f'  ❌ Gold analysis error: {e}')
+        import traceback
+        traceback.print_exc()
+    return None
+
+
 # ── Flask Routes ────────────────────────────────────────
 
 @app.route('/health')
@@ -178,10 +217,13 @@ def analyze_single(symbol: str):
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
 
-    # If SUPABASE_URL is set, run analysis immediately
     if os.environ.get('SUPABASE_URL'):
-        print("🚀 Running initial analysis...")
+        print("🚀 Running initial crypto analysis...")
         run_analysis()
+
+        print("\n🥇 Running gold analysis...")
+        run_gold_analysis()
+
         print("\n🌐 Starting Flask server...")
     else:
         print("⚠️ SUPABASE_URL not set — running Flask server only")

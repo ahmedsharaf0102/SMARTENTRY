@@ -57,3 +57,16 @@ def get_latest_signal(symbol: str) -> dict | None:
         .limit(1) \
         .execute()
     return result.data[0] if result.data else None
+
+
+def upsert_gold_macro(record: dict) -> None:
+    """Insert or update gold macro data for the frontend economics tab."""
+    if not record:
+        return
+    client = get_client()
+    try:
+        client.table('gold_macro').insert(record).execute()
+        print(f"  ✅ Saved gold macro data")
+    except Exception as e:
+        print(f"  ⚠️ Gold macro insert error (table may not exist yet): {e}")
+

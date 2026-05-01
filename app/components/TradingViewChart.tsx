@@ -5,24 +5,21 @@ import { useEffect, useRef } from 'react';
 interface TradingViewChartProps {
   symbol: string;
   height?: number;
+  fullScreen?: boolean;
 }
 
 /**
  * TradingView Advanced Chart Widget — FREE embed
- * Gets data directly from TradingView (all exchanges)
- * Includes all indicators, drawing tools, and timeframes
+ * Includes: real-time data, indicators, drawing tools, all timeframes
  */
-export default function TradingViewChart({ symbol, height = 400 }: TradingViewChartProps) {
+export default function TradingViewChart({ symbol, height = 500, fullScreen = false }: TradingViewChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
-
-    // Clean previous widget
     containerRef.current.innerHTML = '';
 
-    // If symbol already has exchange prefix (e.g., OANDA:XAUUSD), use as-is
-    // Otherwise prepend BINANCE: for crypto symbols
+    // If symbol already has exchange prefix, use as-is
     const tvSymbol = symbol.includes(':') ? symbol : `BINANCE:${symbol}`;
 
     const script = document.createElement('script');
@@ -40,11 +37,14 @@ export default function TradingViewChart({ symbol, height = 400 }: TradingViewCh
       backgroundColor: 'rgba(10, 14, 23, 1)',
       gridColor: 'rgba(255, 255, 255, 0.04)',
       hide_top_toolbar: false,
+      hide_side_toolbar: false,
       hide_legend: false,
       allow_symbol_change: false,
-      save_image: false,
+      save_image: true,
       calendar: false,
       hide_volume: false,
+      details: true,
+      hotlist: false,
       support_host: 'https://www.tradingview.com',
       studies: [
         'RSI@tv-basicstudies',
@@ -54,7 +54,7 @@ export default function TradingViewChart({ symbol, height = 400 }: TradingViewCh
 
     const wrapper = document.createElement('div');
     wrapper.className = 'tradingview-widget-container__widget';
-    wrapper.style.height = `${height}px`;
+    wrapper.style.height = '100%';
     wrapper.style.width = '100%';
 
     containerRef.current.appendChild(wrapper);
@@ -65,13 +65,15 @@ export default function TradingViewChart({ symbol, height = 400 }: TradingViewCh
         containerRef.current.innerHTML = '';
       }
     };
-  }, [symbol, height]);
+  }, [symbol]);
+
+  const chartHeight = fullScreen ? 'calc(100vh - 220px)' : `${height}px`;
 
   return (
     <div
       ref={containerRef}
       className="tradingview-widget-container rounded-xl overflow-hidden"
-      style={{ height: `${height}px`, width: '100%' }}
+      style={{ height: chartHeight, width: '100%', minHeight: '500px' }}
     />
   );
 }

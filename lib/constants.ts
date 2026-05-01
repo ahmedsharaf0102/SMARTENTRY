@@ -4,6 +4,9 @@ export const BINANCE_REF_CODE = process.env.NEXT_PUBLIC_BINANCE_AFFILIATE_REF ||
 
 export const BINANCE_REFERRAL_URL = `https://www.binance.com/en/register?ref=${BINANCE_REF_CODE}`;
 
+// Gold — Exness referral
+export const GOLD_REFERRAL_URL = 'https://one.exnessonelink.com/a/8n69d5vrfl';
+
 export function getBinanceTradeUrl(symbol: string): string {
   const base = symbol.replace('USDT', '');
   return `https://www.binance.com/en/trade/${base}_USDT?ref=${BINANCE_REF_CODE}`;
