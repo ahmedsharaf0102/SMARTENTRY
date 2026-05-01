@@ -8,10 +8,6 @@ interface TradingViewChartProps {
   fullScreen?: boolean;
 }
 
-/**
- * TradingView Advanced Chart Widget — FREE embed
- * Includes: real-time data, indicators, drawing tools, all timeframes
- */
 export default function TradingViewChart({ symbol, height = 500, fullScreen = false }: TradingViewChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -19,8 +15,18 @@ export default function TradingViewChart({ symbol, height = 500, fullScreen = fa
     if (!containerRef.current) return;
     containerRef.current.innerHTML = '';
 
-    // If symbol already has exchange prefix, use as-is
     const tvSymbol = symbol.includes(':') ? symbol : `BINANCE:${symbol}`;
+
+    // Create the widget container FIRST with explicit dimensions
+    const widgetContainer = document.createElement('div');
+    widgetContainer.className = 'tradingview-widget-container';
+    widgetContainer.style.height = '100%';
+    widgetContainer.style.width = '100%';
+
+    const widgetDiv = document.createElement('div');
+    widgetDiv.className = 'tradingview-widget-container__widget';
+    widgetDiv.style.height = '100%';
+    widgetDiv.style.width = '100%';
 
     const script = document.createElement('script');
     script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
@@ -52,13 +58,9 @@ export default function TradingViewChart({ symbol, height = 500, fullScreen = fa
       ],
     });
 
-    const wrapper = document.createElement('div');
-    wrapper.className = 'tradingview-widget-container__widget';
-    wrapper.style.height = '100%';
-    wrapper.style.width = '100%';
-
-    containerRef.current.appendChild(wrapper);
-    containerRef.current.appendChild(script);
+    widgetContainer.appendChild(widgetDiv);
+    widgetContainer.appendChild(script);
+    containerRef.current.appendChild(widgetContainer);
 
     return () => {
       if (containerRef.current) {
@@ -67,13 +69,15 @@ export default function TradingViewChart({ symbol, height = 500, fullScreen = fa
     };
   }, [symbol]);
 
-  const chartHeight = fullScreen ? 'calc(100vh - 160px)' : `${height}px`;
-
   return (
     <div
       ref={containerRef}
-      className={`tradingview-widget-container overflow-hidden ${fullScreen ? '' : 'rounded-xl'}`}
-      style={{ height: chartHeight, width: '100%', minHeight: '500px' }}
+      className={`overflow-hidden ${fullScreen ? '' : 'rounded-xl'}`}
+      style={{
+        height: fullScreen ? 'calc(100dvh - 130px)' : `${height}px`,
+        width: '100%',
+        minHeight: fullScreen ? '600px' : '400px',
+      }}
     />
   );
 }
