@@ -19,6 +19,7 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/signals', label: 'Signals', icon: Radio },
   { href: '/coins', label: 'Coins', icon: BarChart3 },
+  { href: '/coins/gold', label: 'Gold', icon: Crown },
   { href: '/profile', label: 'Profile', icon: UserCircle },
 ];
 

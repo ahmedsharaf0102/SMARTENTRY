@@ -21,8 +21,9 @@ export default function TradingViewChart({ symbol, height = 400 }: TradingViewCh
     // Clean previous widget
     containerRef.current.innerHTML = '';
 
-    // Format symbol for TradingView (e.g., BTCUSDT → BINANCE:BTCUSDT)
-    const tvSymbol = `BINANCE:${symbol}`;
+    // If symbol already has exchange prefix (e.g., OANDA:XAUUSD), use as-is
+    // Otherwise prepend BINANCE: for crypto symbols
+    const tvSymbol = symbol.includes(':') ? symbol : `BINANCE:${symbol}`;
 
     const script = document.createElement('script');
     script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
