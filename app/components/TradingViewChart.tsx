@@ -67,12 +67,12 @@ export default function TradingViewChart({ symbol, height = 500, fullScreen = fa
     };
   }, [symbol]);
 
-  const chartHeight = fullScreen ? 'calc(100vh - 220px)' : `${height}px`;
+  const chartHeight = fullScreen ? 'calc(100vh - 160px)' : `${height}px`;
 
   return (
     <div
       ref={containerRef}
-      className="tradingview-widget-container rounded-xl overflow-hidden"
+      className={`tradingview-widget-container overflow-hidden ${fullScreen ? '' : 'rounded-xl'}`}
       style={{ height: chartHeight, width: '100%', minHeight: '500px' }}
     />
   );

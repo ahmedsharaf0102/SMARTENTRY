@@ -40,8 +40,8 @@ export default function CoinTabs({ symbol, signals }: CoinTabsProps) {
       {/* Tab Content */}
       <div className="fade-in">
         {activeTab === 'chart' && (
-          <div className="card p-4 overflow-hidden">
-            <TradingViewChart symbol={symbol} height={550} />
+          <div className="-mx-4 md:-mx-8 overflow-hidden" style={{ borderRadius: 0 }}>
+            <TradingViewChart symbol={symbol} fullScreen />
           </div>
         )}
 
