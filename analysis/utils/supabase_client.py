@@ -9,11 +9,16 @@ from supabase import create_client, Client
 
 def get_client() -> Client:
     """Create a Supabase client with service role key."""
-    url = os.environ.get('SUPABASE_URL')
-    key = os.environ.get('SUPABASE_SERVICE_KEY')
+    # Accept both naming conventions (Next.js style and Python style)
+    url = os.environ.get('SUPABASE_URL') or os.environ.get('NEXT_PUBLIC_SUPABASE_URL')
+    key = os.environ.get('SUPABASE_SERVICE_KEY') or os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
 
     if not url or not key:
-        raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_KEY must be set")
+        raise ValueError(
+            "Supabase credentials not found. Set either:\n"
+            "  SUPABASE_URL / NEXT_PUBLIC_SUPABASE_URL\n"
+            "  SUPABASE_SERVICE_KEY / SUPABASE_SERVICE_ROLE_KEY"
+        )
 
     return create_client(url, key)
 

@@ -19,11 +19,15 @@ from dotenv import load_dotenv
 ENV_PATH = Path(__file__).resolve().parent / '.env'
 load_dotenv(dotenv_path=ENV_PATH)
 
-# Debug: confirm env vars loaded
+# Resolve env var aliases (accept both Next.js and Python naming)
+SUPABASE_URL = os.getenv('SUPABASE_URL') or os.getenv('NEXT_PUBLIC_SUPABASE_URL')
+SUPABASE_KEY = os.getenv('SUPABASE_SERVICE_KEY') or os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+FRED_KEY = os.getenv('FRED_API_KEY')
+
 print(f"📂 Loading .env from: {ENV_PATH}")
-print(f"   SUPABASE_URL: {'✅ set' if os.getenv('SUPABASE_URL') else '❌ NOT SET'}")
-print(f"   SUPABASE_SERVICE_KEY: {'✅ set' if os.getenv('SUPABASE_SERVICE_KEY') else '❌ NOT SET'}")
-print(f"   FRED_API_KEY: {'✅ set' if os.getenv('FRED_API_KEY') else '❌ NOT SET'}")
+print(f"   SUPABASE_URL: {'✅ ' + SUPABASE_URL[:30] + '...' if SUPABASE_URL else '❌ NOT SET'}")
+print(f"   SUPABASE_KEY: {'✅ set (service_role)' if SUPABASE_KEY else '❌ NOT SET'}")
+print(f"   FRED_API_KEY: {'✅ set' if FRED_KEY else '❌ NOT SET'}")
 
 from engine.indicators import calculate_indicators
 from engine.signals import generate_signals
@@ -226,7 +230,8 @@ def analyze_single(symbol: str):
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
 
-    if os.environ.get('SUPABASE_URL'):
+    supabase_url = os.getenv('SUPABASE_URL') or os.getenv('NEXT_PUBLIC_SUPABASE_URL')
+    if supabase_url:
         print("🚀 Running initial crypto analysis...")
         run_analysis()
 
