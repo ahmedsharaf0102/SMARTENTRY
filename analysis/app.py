@@ -11,16 +11,25 @@ Can be run:
 import os
 import json
 import traceback
+from pathlib import Path
 from flask import Flask, jsonify
 from dotenv import load_dotenv
+
+# Always load .env from the same directory as this script
+ENV_PATH = Path(__file__).resolve().parent / '.env'
+load_dotenv(dotenv_path=ENV_PATH)
+
+# Debug: confirm env vars loaded
+print(f"📂 Loading .env from: {ENV_PATH}")
+print(f"   SUPABASE_URL: {'✅ set' if os.getenv('SUPABASE_URL') else '❌ NOT SET'}")
+print(f"   SUPABASE_SERVICE_KEY: {'✅ set' if os.getenv('SUPABASE_SERVICE_KEY') else '❌ NOT SET'}")
+print(f"   FRED_API_KEY: {'✅ set' if os.getenv('FRED_API_KEY') else '❌ NOT SET'}")
 
 from engine.indicators import calculate_indicators
 from engine.signals import generate_signals
 from engine.gold_signals import generate_gold_signal
 from utils.binance_client import fetch_klines, get_top_coins
 from utils.supabase_client import upsert_coins, insert_signals, insert_candles, upsert_gold_macro
-
-load_dotenv()
 
 app = Flask(__name__)
 
