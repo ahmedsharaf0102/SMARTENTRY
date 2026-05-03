@@ -79,7 +79,19 @@ export default function DashboardNav({ user, profile }: Props) {
       {/* Navigation */}
       <nav className="flex-1 px-3 space-y-1">
         {navItems.map(({ href, label, icon: Icon }) => {
-          const isActive = pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
+          // Exact match for specific routes; startsWith for sub-routes
+          // But /coins should NOT be active when on /coins/gold
+          let isActive = pathname === href;
+          if (!isActive && href !== '/dashboard') {
+            isActive = pathname.startsWith(href + '/') || pathname.startsWith(href + '?');
+            // Don't mark /coins active when /coins/gold is active
+            if (href === '/coins' && pathname.startsWith('/coins/gold')) {
+              isActive = false;
+            }
+          }
+          const isGold = href === '/coins/gold';
+          const activeColor = isGold ? '#FFD700' : 'var(--accent-blue)';
+          const activeBg = isGold ? 'rgba(255, 215, 0, 0.1)' : 'var(--accent-blue-dim)';
           return (
             <Link
               key={href}
@@ -87,8 +99,8 @@ export default function DashboardNav({ user, profile }: Props) {
               onClick={() => setMobileOpen(false)}
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
               style={{
-                background: isActive ? 'var(--accent-blue-dim)' : 'transparent',
-                color: isActive ? 'var(--accent-blue)' : 'var(--text-secondary)',
+                background: isActive ? activeBg : 'transparent',
+                color: isActive ? activeColor : 'var(--text-secondary)',
               }}
             >
               <Icon size={18} />
