@@ -1,6 +1,6 @@
 # Project Manifest
 
-This is a safe file tree. Secrets and ignored folders are excluded.
+Safe file tree. Secrets and ignored folders are excluded.
 
 - .env.example
 - .gitignore

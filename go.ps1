@@ -1,20 +1,15 @@
 # SmartEntry Safe Export Script - Markdown Version
 # ===============================================
-# Exports important project files into Markdown
-# Skips real .env files
-# Redacts secrets automatically
 
 $OutputDir = "project_dump"
 $MaxFileSizeKB = 250
 
-# Delete old dump folder
 if (Test-Path $OutputDir) {
     Remove-Item -Recurse -Force $OutputDir
 }
 
 New-Item -ItemType Directory -Path $OutputDir | Out-Null
 
-# Folders to ignore completely
 $IgnoreFolders = @(
     "node_modules",
     ".git",
@@ -31,7 +26,6 @@ $IgnoreFolders = @(
     "project_dump"
 )
 
-# File extensions to ignore
 $IgnoreExtensions = @(
     ".lock",
     ".log",
@@ -55,7 +49,6 @@ $IgnoreExtensions = @(
     ".crt"
 )
 
-# Real env files to skip
 $SensitiveEnvFileNames = @(
     ".env",
     ".env.local",
@@ -135,7 +128,6 @@ function Protect-SecretContent {
 
     $redacted = $Content
 
-    # Redact common KEY=value secrets
     $secretKeys = @(
         "SUPABASE_SERVICE_KEY",
         "SUPABASE_SERVICE_ROLE_KEY",
@@ -162,42 +154,42 @@ function Protect-SecretContent {
         $redacted = :Replace($redacted, $pattern, '$1[REDACTED]')
     }
 
-    # Redact Supabase/JWT-like tokens
+    # JWT / Supabase-like tokens
     $redacted = :Replace(
         $redacted,
         "eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+",
         "[REDACTED_JWT]"
     )
 
-    # Redact Stripe secret keys
+    # Stripe secret keys
     $redacted = :Replace(
         $redacted,
         "sk_(live|test)_[A-Za-z0-9_]+",
         "[REDACTED_STRIPE_SECRET]"
     )
 
-    # Redact Stripe webhook secrets
+    # Stripe webhook secrets
     $redacted = :Replace(
         $redacted,
         "whsec_[A-Za-z0-9_]+",
         "[REDACTED_STRIPE_WEBHOOK]"
     )
 
-    # Redact Stripe public keys too
+    # Stripe publishable keys
     $redacted = :Replace(
         $redacted,
         "pk_(live|test)_[A-Za-z0-9_]+",
         "[REDACTED_STRIPE_PUBLIC_KEY]"
     )
 
-    # Redact Telegram bot tokens
+    # Telegram bot tokens
     $redacted = :Replace(
         $redacted,
         "\b\d{8,12}:[A-Za-z0-9_\-]{30,}\b",
         "[REDACTED_TELEGRAM_BOT_TOKEN]"
     )
 
-    # Redact 32-char hex keys like FRED keys
+    # 32-character hex keys like FRED API keys
     $redacted = :Replace(
         $redacted,
         "(?i)\b[a-f0-9]{32}\b",
@@ -231,7 +223,6 @@ function Add-FileToMarkdown {
     Add-Content -Path $OutputFile -Value ""
     Add-Content -Path $OutputFile -Value "## File: $relativePath"
     Add-Content -Path $OutputFile -Value ""
-
     Add-Content -Path $OutputFile -Value ('```' + $lang)
     Add-Content -Path $OutputFile -Value $safeContent
     Add-Content -Path $OutputFile -Value '```'
@@ -257,7 +248,9 @@ function Export-FolderToMarkdown {
     Add-Content -Path $outputFile -Value "Secrets are automatically redacted."
     Add-Content -Path $outputFile -Value ""
 
-    Get-ChildItem -Path $FolderName -Recurse -File | Sort-Object FullName | ForEach-Object {
+    Get-ChildItem -Path $FolderName -Recurse -File |
+    Sort-Object FullName |
+    ForEach-Object {
         if (-not (Test-SkipFile -File $_)) {
             Add-FileToMarkdown -OutputFile $outputFile -File $_
         }
@@ -279,7 +272,7 @@ function Add-RootFileIfExists {
     }
 }
 
-# Export classic project folders
+# Export normal folders
 $ProjectFolders = @(
     @{ Path = "frontend"; Name = "frontend" },
     @{ Path = "backend"; Name = "backend" },
@@ -294,9 +287,10 @@ foreach ($folder in $ProjectFolders) {
     Export-FolderToMarkdown -FolderName $folder.Path -OutputName $folder.Name
 }
 
-# Export root Next.js structure if project is at root instead of frontend/
+# Export root Next.js folders
 $RootAppFolders = @(
     @{ Path = "app"; Name = "root-app" },
+    @{ Path = "app(dashboard)"; Name = "dashboard-app" },
     @{ Path = "components"; Name = "root-components" },
     @{ Path = "lib"; Name = "root-lib" },
     @{ Path = "hooks"; Name = "root-hooks" },
@@ -308,7 +302,7 @@ foreach ($folder in $RootAppFolders) {
     Export-FolderToMarkdown -FolderName $folder.Path -OutputName $folder.Name
 }
 
-# Export root config files
+# Export root files
 $rootOutputFile = Join-Path $OutputDir "root.md"
 
 Add-Content -Path $rootOutputFile -Value "# Root Files"
@@ -343,15 +337,17 @@ foreach ($filePath in $RootFilesToExport) {
     Add-RootFileIfExists -OutputFile $rootOutputFile -FilePath $filePath
 }
 
-# Create safe project manifest
+# Project manifest
 $manifestFile = Join-Path $OutputDir "project_manifest.md"
 
 Add-Content -Path $manifestFile -Value "# Project Manifest"
 Add-Content -Path $manifestFile -Value ""
-Add-Content -Path $manifestFile -Value "This is a safe file tree. Secrets and ignored folders are excluded."
+Add-Content -Path $manifestFile -Value "Safe file tree. Secrets and ignored folders are excluded."
 Add-Content -Path $manifestFile -Value ""
 
-Get-ChildItem -Recurse -File | Sort-Object FullName | ForEach-Object {
+Get-ChildItem -Recurse -File |
+Sort-Object FullName |
+ForEach-Object {
     if (-not (Test-SkipFile -File $_)) {
         $rootPath = (Get-Location).Path
         $relativePath = $_.FullName.Replace($rootPath + "\", "")
@@ -362,9 +358,7 @@ Get-ChildItem -Recurse -File | Sort-Object FullName | ForEach-Object {
 Write-Host ""
 Write-Host "DONE! Safe Markdown files created in: $OutputDir"
 Write-Host ""
-Write-Host "Send me the relevant files from project_dump."
-Write-Host ""
 Write-Host "Important:"
 Write-Host "- Real .env files are skipped."
 Write-Host "- Secrets inside exported code are redacted."
-Write-Host "- If you already exposed keys, rotate them now."
+Write-Host "- If keys were exposed before, rotate them."
