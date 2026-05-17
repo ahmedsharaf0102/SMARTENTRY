@@ -1,6 +1,7 @@
 # Folder: docker
 
 Generated from SmartEntry project.
+Secrets are automatically redacted.
 
 
 ---

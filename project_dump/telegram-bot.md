@@ -1,6 +1,7 @@
 # Folder: telegram-bot
 
 Generated from SmartEntry project.
+Secrets are automatically redacted.
 
 
 ---

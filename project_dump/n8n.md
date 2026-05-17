@@ -1,6 +1,7 @@
 # Folder: n8n
 
 Generated from SmartEntry project.
+Secrets are automatically redacted.
 
 
 ---
