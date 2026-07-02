@@ -61,12 +61,28 @@ def fetch_klines(symbol: str, interval: str = '1h', limit: int = 100) -> list[di
         WEIGHT_USED += 1
 
         if response.status_code != 200:
-            print(f"  ❌ Binance API error {response.status_code}: {response.text[:200]}")
+            print(f"  ❌ API error {response.status_code}: {response.text[:200]}")
             return []
 
         data = response.json()
+
+        # MEXC/Binance may return a dict on error (e.g. {"code": -1121, "msg": "..."})
+        if isinstance(data, dict):
+            print(f"  ❌ API error for {symbol}: {data.get('msg', data)}")
+            return []
+
+        if not isinstance(data, list) or len(data) == 0:
+            print(f"  ⚠️ Empty or invalid response for {symbol}")
+            return []
+
         klines = []
-        for k in data:
+        for i, k in enumerate(data):
+            # Validate each kline — MEXC returns 7 elements, Binance returns 12
+            if not isinstance(k, (list, tuple)) or len(k) < 6:
+                if i == 0:
+                    print(f"  ⚠️ Malformed kline for {symbol}: {str(k)[:100]}")
+                continue
+
             klines.append({
                 'open_time': int(k[0]),
                 'open': float(k[1]),
@@ -74,10 +90,14 @@ def fetch_klines(symbol: str, interval: str = '1h', limit: int = 100) -> list[di
                 'low': float(k[3]),
                 'close': float(k[4]),
                 'volume': float(k[5]),
-                'close_time': int(k[6]),
-                'quote_volume': float(k[7]),
-                'trades': int(k[8]),
+                'close_time': int(k[6]) if len(k) > 6 else None,
+                'quote_volume': float(k[7]) if len(k) > 7 else 0.0,
+                'trades': int(k[8]) if len(k) > 8 else 0,
             })
+
+        if len(klines) == 0 and len(data) > 0:
+            print(f"  ❌ All {len(data)} klines malformed for {symbol}")
+            print(f"      First entry: {str(data[0])[:200]}")
 
         return klines
 
