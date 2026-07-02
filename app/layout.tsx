@@ -2,12 +2,12 @@ import './globals.css';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'SmartEntry — Crypto Trading Signals & Insights',
-  description: 'Real-time crypto trading signals powered by RSI, MACD, volume analysis. Get actionable BUY, WATCH, and WAIT decisions for top cryptocurrencies.',
-  keywords: ['crypto', 'trading signals', 'RSI', 'MACD', 'Bitcoin', 'cryptocurrency', 'technical analysis'],
+  title: 'SmartEntry — Financial Markets, Signals & Analysis',
+  description: 'Your comprehensive financial portal — crypto trading signals, stock market data, economic calendar, and expert analysis. All in one place.',
+  keywords: ['crypto', 'trading signals', 'stock market', 'economic calendar', 'financial analysis', 'RSI', 'MACD', 'Bitcoin', 'gold'],
   openGraph: {
-    title: 'SmartEntry — Crypto Trading Signals',
-    description: 'Actionable crypto trading insights powered by real-time technical analysis.',
+    title: 'SmartEntry — Financial Markets, Signals & Analysis',
+    description: 'Crypto signals, stock data, economic calendar, and expert analysis — your financial command center.',
     type: 'website',
   },
 };

@@ -1,4 +1,6 @@
-Crypto Website Structure
+ Website Structure
+
+
 1.	📊 Markets:
 
 What it is: The main hub of the website. Users come here first to check prices and market data.
@@ -68,6 +70,8 @@ Design note: Organize articles by difficulty level with clear labels. Add a sear
 
 
 7.	🌐 Ecosystem:
+
+@
 What it is: A dedicated space covering the broader crypto world beyond just prices.
 What to show:
 •	DeFi section — top protocols ranked by TVL (Total Value Locked)
