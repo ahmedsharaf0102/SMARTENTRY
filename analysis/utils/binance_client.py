@@ -11,7 +11,7 @@ Rate Limits:
 import time
 import requests
 
-BASE_URL = 'https://api.binance.com'
+BASE_URL = 'https://api.mexc.com'
 WEIGHT_USED = 0
 WEIGHT_LIMIT = 1200
 LAST_RESET = time.time()
@@ -47,9 +47,12 @@ def fetch_klines(symbol: str, interval: str = '1h', limit: int = 100) -> list[di
         WEIGHT_USED = 0
 
     url = f"{BASE_URL}/api/v3/klines"
+    # MEXC uses 60m instead of 1h
+    mexc_interval = '60m' if interval == '1h' else interval
+    
     params = {
         'symbol': symbol,
-        'interval': interval,
+        'interval': mexc_interval,
         'limit': limit,
     }
 
