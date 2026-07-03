@@ -6,7 +6,8 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   LayoutDashboard, Radio, BarChart3, UserCircle,
-  LogOut, Menu, X, Crown
+  LogOut, Menu, X, Crown, Bell, Globe,
+  Newspaper, Wrench, Calendar, GraduationCap, TrendingUp, FlaskConical
 } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 
@@ -15,12 +16,24 @@ interface Props {
   profile: any;
 }
 
-const navItems = [
+const dashboardItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/signals', label: 'Signals', icon: Radio },
   { href: '/coins', label: 'Coins', icon: BarChart3 },
   { href: '/coins/gold', label: 'Gold', icon: Crown },
+  { href: '/alerts', label: 'Alerts', icon: Bell },
   { href: '/profile', label: 'Profile', icon: UserCircle },
+];
+
+const exploreItems = [
+  { href: '/markets', label: 'Markets', icon: Globe },
+  { href: '/crypto', label: 'Crypto', icon: TrendingUp },
+  { href: '/stocks', label: 'Stocks', icon: BarChart3 },
+  { href: '/news', label: 'News', icon: Newspaper },
+  { href: '/analysis', label: 'Analysis', icon: FlaskConical },
+  { href: '/tools', label: 'Tools', icon: Wrench },
+  { href: '/calendar/economic', label: 'Economic Calendar', icon: Calendar },
+  { href: '/education', label: 'Education', icon: GraduationCap },
 ];
 
 export default function DashboardNav({ user, profile }: Props) {
@@ -40,11 +53,38 @@ export default function DashboardNav({ user, profile }: Props) {
     window.location.href = '/';
   }
 
+  function NavLink({ href, label, icon: Icon, accentColor, accentBg }: {
+    href: string; label: string; icon: any;
+    accentColor?: string; accentBg?: string;
+  }) {
+    let isActive = pathname === href;
+    if (!isActive && href !== '/dashboard') {
+      isActive = pathname.startsWith(href + '/') || pathname.startsWith(href + '?');
+      if (href === '/coins' && pathname.startsWith('/coins/gold')) isActive = false;
+    }
+    const color = accentColor || 'var(--accent-blue)';
+    const bg = accentBg || 'var(--accent-blue-dim)';
+    return (
+      <Link
+        href={href}
+        onClick={() => setMobileOpen(false)}
+        className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all hover:bg-white/5"
+        style={{
+          background: isActive ? bg : 'transparent',
+          color: isActive ? color : 'var(--text-secondary)',
+        }}
+      >
+        <Icon size={17} />
+        {label}
+      </Link>
+    );
+  }
+
   const navContent = (
     <>
-      {/* Logo */}
+      {/* Logo → Home */}
       <div className="p-6 pb-4">
-        <Link href="/dashboard" className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2">
           <div className="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-white text-sm"
             style={{ background: 'var(--gradient-primary)' }}>
             SE
@@ -56,7 +96,7 @@ export default function DashboardNav({ user, profile }: Props) {
       </div>
 
       {/* Trial/Pro badge */}
-      <div className="px-4 mb-4">
+      <div className="px-4 mb-3">
         {isPro ? (
           <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold"
             style={{ background: 'var(--accent-green-dim)', color: 'var(--accent-green)' }}>
@@ -76,39 +116,45 @@ export default function DashboardNav({ user, profile }: Props) {
         )}
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 px-3 space-y-1">
-        {navItems.map(({ href, label, icon: Icon }) => {
-          // Exact match for specific routes; startsWith for sub-routes
-          // But /coins should NOT be active when on /coins/gold
-          let isActive = pathname === href;
-          if (!isActive && href !== '/dashboard') {
-            isActive = pathname.startsWith(href + '/') || pathname.startsWith(href + '?');
-            // Don't mark /coins active when /coins/gold is active
-            if (href === '/coins' && pathname.startsWith('/coins/gold')) {
-              isActive = false;
-            }
-          }
-          const isGold = href === '/coins/gold';
-          const activeColor = isGold ? '#FFD700' : 'var(--accent-blue)';
-          const activeBg = isGold ? 'rgba(255, 215, 0, 0.1)' : 'var(--accent-blue-dim)';
-          return (
-            <Link
-              key={href}
-              href={href}
-              onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
-              style={{
-                background: isActive ? activeBg : 'transparent',
-                color: isActive ? activeColor : 'var(--text-secondary)',
-              }}
-            >
-              <Icon size={18} />
-              {label}
-            </Link>
-          );
-        })}
-      </nav>
+      {/* Scrollable nav area */}
+      <div className="flex-1 overflow-y-auto px-3 space-y-1">
+        {/* ── My Account Section ── */}
+        <div className="mb-1">
+          <p className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest"
+            style={{ color: 'var(--text-muted)' }}>
+            My Account
+          </p>
+        </div>
+        {dashboardItems.map((item) => (
+          <NavLink
+            key={item.href}
+            {...item}
+            accentColor={item.href === '/coins/gold' ? '#FFD700' : undefined}
+            accentBg={item.href === '/coins/gold' ? 'rgba(255, 215, 0, 0.1)' : undefined}
+          />
+        ))}
+
+        {/* ── Divider ── */}
+        <div className="py-2">
+          <div style={{ borderTop: '1px solid var(--border-color)' }} />
+        </div>
+
+        {/* ── Explore Section ── */}
+        <div className="mb-1">
+          <p className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest"
+            style={{ color: 'var(--text-muted)' }}>
+            Explore
+          </p>
+        </div>
+        {exploreItems.map((item) => (
+          <NavLink
+            key={item.href}
+            {...item}
+            accentColor="var(--accent-purple)"
+            accentBg="rgba(168, 85, 247, 0.12)"
+          />
+        ))}
+      </div>
 
       {/* User section */}
       <div className="p-4" style={{ borderTop: '1px solid var(--border-color)' }}>
