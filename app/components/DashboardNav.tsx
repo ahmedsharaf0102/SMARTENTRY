@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import {
   LayoutDashboard, Radio, BarChart3, UserCircle,
   LogOut, Menu, X, Crown, Bell, Globe,
-  Newspaper, Wrench, Calendar, GraduationCap, TrendingUp, FlaskConical
+  Newspaper, Wrench, Calendar, GraduationCap, TrendingUp, FlaskConical, Shield
 } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 
@@ -133,6 +133,17 @@ export default function DashboardNav({ user, profile }: Props) {
             accentBg={item.href === '/coins/gold' ? 'rgba(255, 215, 0, 0.1)' : undefined}
           />
         ))}
+
+        {/* ── Admin Link (only for admins) ── */}
+        {profile?.role === 'admin' && (
+          <NavLink
+            href="/admin"
+            label="Admin Panel"
+            icon={Shield}
+            accentColor="var(--accent-red)"
+            accentBg="var(--accent-red-dim)"
+          />
+        )}
 
         {/* ── Divider ── */}
         <div className="py-2">
