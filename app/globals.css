@@ -390,3 +390,29 @@ body {
   overflow: hidden;
 }
 
+/* ── YouTube Embeds ──────────────────────────────────── */
+
+.youtube-embed,
+.tiptap iframe,
+.article-content iframe {
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  margin: 1.5em 0;
+  border: 1px solid var(--border-color);
+}
+
+.tiptap div[data-youtube-video],
+.article-content div[data-youtube-video] {
+  width: 100%;
+  margin: 1.5em 0;
+}
+
+.tiptap div[data-youtube-video] iframe,
+.article-content div[data-youtube-video] iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+}

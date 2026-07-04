@@ -7,11 +7,12 @@ import LinkExtension from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
+import Youtube from '@tiptap/extension-youtube';
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   List, ListOrdered, Quote, Code, Image as ImageIcon,
   Link as LinkIcon, Heading1, Heading2, Heading3, Undo, Redo,
-  AlignLeft, AlignCenter, AlignRight, Minus,
+  AlignLeft, AlignCenter, AlignRight, Minus, Youtube as YoutubeIcon,
 } from 'lucide-react';
 
 interface Props {
@@ -51,10 +52,19 @@ export default function RichTextEditor({ content, onChange }: Props) {
         HTMLAttributes: { class: 'text-blue-400 underline' },
       }),
       Image.configure({
+        inline: false,
+        allowBase64: false,
         HTMLAttributes: { class: 'rounded-lg max-w-full mx-auto my-4' },
       }),
+      Youtube.configure({
+        inline: false,
+        nocookie: true,
+        HTMLAttributes: {
+          class: 'youtube-embed',
+        },
+      }),
       Placeholder.configure({
-        placeholder: 'Start writing your article...',
+        placeholder: 'Start writing your article... Use the toolbar to add images, YouTube videos, and formatting.',
       }),
     ],
     content,
@@ -71,16 +81,33 @@ export default function RichTextEditor({ content, onChange }: Props) {
   if (!editor) return null;
 
   function addImage() {
-    const url = window.prompt('Enter image URL:');
+    const url = window.prompt('Enter image URL:\n\nThe image will be inserted at your cursor position.');
     if (url) {
       editor?.chain().focus().setImage({ src: url }).run();
     }
   }
 
-  function addLink() {
-    const url = window.prompt('Enter URL:');
+  function addYouTube() {
+    const url = window.prompt(
+      'Paste YouTube video URL:\n\n' +
+      'Supported formats:\n' +
+      '• https://www.youtube.com/watch?v=VIDEO_ID\n' +
+      '• https://youtu.be/VIDEO_ID\n\n' +
+      'The video will be embedded at your cursor position.'
+    );
     if (url) {
-      editor?.chain().focus().setLink({ href: url }).run();
+      editor?.chain().focus().setYoutubeVideo({ src: url, width: 640, height: 360 }).run();
+    }
+  }
+
+  function addLink() {
+    const previousUrl = editor?.getAttributes('link').href;
+    const url = window.prompt('Enter URL:', previousUrl);
+    if (url === null) return;
+    if (url === '') {
+      editor?.chain().focus().extendMarkRange('link').unsetLink().run();
+    } else {
+      editor?.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
     }
   }
 
@@ -169,9 +196,12 @@ export default function RichTextEditor({ content, onChange }: Props) {
 
         <div className="w-px h-5 mx-1" style={{ background: 'var(--border-color)' }} />
 
-        {/* Media */}
-        <ToolbarButton title="Insert Image" onClick={addImage}>
+        {/* Media — Image & YouTube */}
+        <ToolbarButton title="Insert Image (at cursor)" onClick={addImage}>
           <ImageIcon size={16} />
+        </ToolbarButton>
+        <ToolbarButton title="Embed YouTube Video" active={editor.isActive('youtube')} onClick={addYouTube}>
+          <YoutubeIcon size={16} />
         </ToolbarButton>
         <ToolbarButton title="Insert Link" active={editor.isActive('link')} onClick={addLink}>
           <LinkIcon size={16} />
@@ -186,6 +216,12 @@ export default function RichTextEditor({ content, onChange }: Props) {
         <ToolbarButton title="Redo" onClick={() => editor.chain().focus().redo().run()}>
           <Redo size={16} />
         </ToolbarButton>
+      </div>
+
+      {/* Toolbar hint */}
+      <div className="px-3 py-1.5 text-[10px] flex items-center gap-4"
+        style={{ background: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+        <span>💡 Place your cursor where you want media, then click 📷 for images or ▶️ for YouTube</span>
       </div>
 
       {/* Editor */}
