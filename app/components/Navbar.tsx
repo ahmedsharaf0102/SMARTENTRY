@@ -28,7 +28,9 @@ const navSections: NavSection[] = [
     items: [
       { label: 'Overview', href: '/markets', icon: '🌍', description: 'Global markets at a glance' },
       { label: 'Crypto', href: '/crypto', icon: '₿', description: 'Live crypto signals & analysis', badge: 'Live' },
-      { label: 'Stocks', href: '/stocks', icon: '📈', description: 'Major indices & equities', badge: 'Soon' },
+      { label: 'Stocks', href: '/stocks', icon: '📈', description: 'Major indices & equities', badge: 'Live' },
+      { label: 'Forex', href: '/forex', icon: '💱', description: 'Currency pairs & cross rates', badge: 'Live' },
+      { label: 'Commodities', href: '/commodities', icon: '🛢️', description: 'Gold, oil & metals', badge: 'Live' },
     ],
   },
   { label: 'News', href: '/news' },
