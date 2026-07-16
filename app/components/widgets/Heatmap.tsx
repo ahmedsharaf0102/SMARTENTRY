@@ -39,6 +39,7 @@ export default function Heatmap({ dataSource = 'SPX500', height = 500 }: Heatmap
       locale: 'en',
       isTransparent: true,
       hasTopBar: true,
+      support_host: 'https://www.tradingview.com/?aff_id=168777',
     };
 
     if (isCrypto) {

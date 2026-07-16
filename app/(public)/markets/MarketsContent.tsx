@@ -67,9 +67,10 @@ export default function MarketsContent() {
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-display)' }}>Market Overview</h2>
-            <span className="text-xs px-3 py-1 rounded-full glass" style={{ color: 'var(--text-muted)' }}>
+            <a href="https://www.tradingview.com/?aff_id=168777" target="_blank" rel="noopener noreferrer"
+              className="text-xs px-3 py-1 rounded-full glass hover:opacity-80 transition-opacity" style={{ color: 'var(--text-muted)' }}>
               Powered by TradingView
-            </span>
+            </a>
           </div>
           <MarketOverview height={500} />
         </div>

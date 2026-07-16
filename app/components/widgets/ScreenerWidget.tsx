@@ -43,6 +43,7 @@ export default function ScreenerWidget({
       colorTheme: 'dark',
       locale: 'en',
       isTransparent: true,
+      support_host: 'https://www.tradingview.com/?aff_id=168777',
     });
 
     widgetContainer.appendChild(widgetDiv);

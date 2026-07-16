@@ -51,7 +51,7 @@ export default function TradingViewChart({ symbol, height = 500, fullScreen = fa
       hide_volume: false,
       details: true,
       hotlist: false,
-      support_host: 'https://www.tradingview.com',
+      support_host: 'https://www.tradingview.com/?aff_id=168777',
       studies: [
         'RSI@tv-basicstudies',
         'MACD@tv-basicstudies',

@@ -89,6 +89,7 @@ export default function MarketOverview({ height = 450, tabs = defaultTabs }: Mar
       showSymbolLogo: true,
       showFloatingTooltip: true,
       tabs,
+      support_host: 'https://www.tradingview.com/?aff_id=168777',
     });
 
     widgetContainer.appendChild(widgetDiv);
