@@ -39,7 +39,7 @@ const navSections: NavSection[] = [
   {
     label: 'Calendar',
     items: [
-      { label: 'Economic Calendar', href: '/calendar/economic', icon: '📅', description: 'FOMC, CPI, NFP & more', badge: 'Soon' },
+      { label: 'Economic Calendar', href: '/calendar/economic', icon: '📅', description: 'FOMC, CPI, NFP & more', badge: 'Live' },
       { label: 'Crypto Events', href: '/calendar/crypto', icon: '🗓️', description: 'Unlocks, upgrades & airdrops', badge: 'Soon' },
     ],
   },

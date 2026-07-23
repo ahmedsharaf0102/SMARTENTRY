@@ -232,12 +232,31 @@ def main():
         traceback.print_exc()
 
     # ═══════════════════════════════════════════════════════
+    # PHASE 3 — Economic Calendar
+    # ═══════════════════════════════════════════════════════
+    print('\n' + '─' * 60)
+    print('📅 PHASE 3: Economic Calendar')
+    print('─' * 60)
+
+    calendar_ok = False
+    try:
+        from engine.calendar import run_calendar_pipeline
+        run_calendar_pipeline()
+        calendar_ok = True
+        print('✅ Economic calendar updated')
+    except Exception as e:
+        has_errors = True
+        print(f'❌ Economic calendar failed: {e}')
+        traceback.print_exc()
+
+    # ═══════════════════════════════════════════════════════
     # SUMMARY
     # ═══════════════════════════════════════════════════════
     elapsed = round(time.time() - start_time, 1)
     print('\n' + '=' * 60)
     print(f'🏁 All done in {elapsed}s')
     print(f'   Crypto: {analyzed}/{len(DEFAULT_COINS)} coins, {signals_count} signals')
+    print(f'   Calendar: {"✅" if calendar_ok else "❌"}')
     print(f'   Errors: {"Yes ⚠️" if has_errors else "None ✅"}')
     print('=' * 60)
 
