@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS economic_calendar (
     forecast TEXT,
     previous TEXT,
     target_market TEXT NOT NULL DEFAULT 'All Markets',
+    affected_assets TEXT NOT NULL DEFAULT '',
     impact_analysis TEXT,
     importance TEXT NOT NULL DEFAULT 'MEDIUM' CHECK (importance IN ('HIGH', 'MEDIUM', 'LOW')),
     created_at TIMESTAMPTZ DEFAULT now(),

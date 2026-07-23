@@ -4,7 +4,7 @@ Rule-based analysis for major economic events.
 
 Uses Finnhub's free economic calendar API to fetch upcoming events,
 then matches them against a predefined dictionary of event analysis
-to provide Arabic-language market impact insights.
+to provide market impact insights and affected asset identification.
 """
 
 import os
@@ -13,7 +13,7 @@ from datetime import datetime, timezone, timedelta
 
 # ══════════════════════════════════════════════════════════════
 # EVENT ANALYSIS DICTIONARY (Rule-Based System)
-# Maps event keywords → target market + Arabic impact analysis
+# Maps event keywords → target market + impact analysis + affected assets
 # ══════════════════════════════════════════════════════════════
 
 EVENT_RULES = {
@@ -21,182 +21,244 @@ EVENT_RULES = {
     "CPI": {
         "target_market": "Crypto & Stocks",
         "importance": "HIGH",
-        "analysis": "📊 مؤشر التضخم (CPI): إذا جاءت النسبة أعلى من المتوقع → سلبي للأسواق (هبوط الأسهم والكريبتو لأن الفيدرالي قد يرفع الفائدة). أقل من المتوقع → إيجابي جداً (صعود)."
+        "affected_assets": "USD, BTC, ETH, S&P 500, NASDAQ, Gold",
+        "analysis": "📊 Consumer Price Index (CPI): Higher than expected → Bearish for stocks & crypto (Fed may hike rates). Lower than expected → Very bullish (rally likely)."
     },
     "Core CPI": {
         "target_market": "Crypto & Stocks",
         "importance": "HIGH",
-        "analysis": "📊 التضخم الأساسي (Core CPI): يستثني الغذاء والطاقة. أعلى من المتوقع → سلبي (يشير لتضخم مستمر). أقل → إيجابي للأسواق."
+        "affected_assets": "USD, BTC, ETH, S&P 500, NASDAQ",
+        "analysis": "📊 Core CPI (excludes food & energy): Higher → Bearish (signals persistent inflation). Lower → Bullish for risk assets."
     },
     "PPI": {
         "target_market": "Stocks",
         "importance": "MEDIUM",
-        "analysis": "🏭 مؤشر أسعار المنتجين (PPI): يقيس التضخم على مستوى الإنتاج. ارتفاعه يسبق ارتفاع أسعار المستهلك وسلبي للأسهم."
+        "affected_assets": "USD, S&P 500, Industrial Stocks",
+        "analysis": "🏭 Producer Price Index (PPI): Measures wholesale inflation. Rising PPI often leads to higher consumer prices → Bearish for stocks."
     },
     "PCE": {
         "target_market": "Crypto & Stocks",
         "importance": "HIGH",
-        "analysis": "📊 مؤشر PCE (المفضل للفيدرالي): هذا المؤشر يراقبه الفيدرالي عن كثب. أعلى من المتوقع → خطر رفع فائدة → هبوط. أقل → صعود."
+        "affected_assets": "USD, BTC, ETH, S&P 500, Gold, Bonds",
+        "analysis": "📊 PCE Price Index (Fed's preferred measure): Higher than expected → Rate hike risk → Bearish. Lower → Bullish. This is the #1 inflation indicator the Fed watches."
     },
 
     # ── FEDERAL RESERVE ──────────────────────────────────────
     "FOMC": {
         "target_market": "All Markets",
         "importance": "HIGH",
-        "analysis": "🏛️ اجتماع الفيدرالي (FOMC): أهم حدث في السوق. تثبيت الفائدة → إيجابي. رفع الفائدة → سلبي جداً لكل الأسواق. خفض الفائدة → إيجابي جداً (صعود قوي)."
+        "affected_assets": "USD, BTC, ETH, S&P 500, NASDAQ, Gold, EUR/USD, Bonds",
+        "analysis": "🏛️ FOMC Meeting: The most important market event. Hold rates → Bullish. Hike rates → Very bearish for all markets. Cut rates → Very bullish (strong rally)."
     },
     "Fed Interest Rate": {
         "target_market": "All Markets",
         "importance": "HIGH",
-        "analysis": "🏛️ قرار الفائدة الأمريكية: رفع الفائدة → الدولار يقوى والأسهم والكريبتو والذهب تهبط. خفض الفائدة → العكس تماماً. تثبيت → استقرار نسبي."
+        "affected_assets": "USD, BTC, ETH, S&P 500, NASDAQ, Gold, EUR/USD, GBP/USD, Bonds",
+        "analysis": "🏛️ Fed Interest Rate Decision: Rate hike → USD strengthens, stocks/crypto/gold drop. Rate cut → USD weakens, everything else rallies. Hold → Relatively stable."
     },
     "Federal Funds Rate": {
         "target_market": "All Markets",
         "importance": "HIGH",
-        "analysis": "🏛️ سعر الفائدة الفيدرالي: تغيير الفائدة يؤثر على كل الأسواق العالمية. رفع = سلبي، خفض = إيجابي، تثبيت = حيادي."
+        "affected_assets": "USD, All Forex Pairs, S&P 500, BTC, Gold, Bonds",
+        "analysis": "🏛️ Federal Funds Rate: Changes impact all global markets. Hike = Bearish, Cut = Bullish, Hold = Neutral."
     },
     "Fed Chair": {
         "target_market": "All Markets",
         "importance": "HIGH",
-        "analysis": "🎤 خطاب رئيس الفيدرالي: أي تلميح لرفع أو خفض الفائدة يحرك الأسواق بقوة. نبرة متشددة (Hawkish) → سلبي. نبرة مرنة (Dovish) → إيجابي."
+        "affected_assets": "USD, S&P 500, NASDAQ, BTC, Gold, EUR/USD",
+        "analysis": "🎤 Fed Chair Speech: Any hint about rate changes moves markets sharply. Hawkish tone → Bearish. Dovish tone → Bullish."
     },
     "FOMC Minutes": {
         "target_market": "All Markets",
         "importance": "MEDIUM",
-        "analysis": "📋 محضر اجتماع الفيدرالي: يكشف تفاصيل نقاشات أعضاء الفيدرالي. قد يعطي إشارات مبكرة عن اتجاه الفائدة القادم."
+        "affected_assets": "USD, S&P 500, BTC, Gold, Bonds",
+        "analysis": "📋 FOMC Minutes: Reveals internal Fed discussions. May give early signals about the next rate decision direction."
     },
 
     # ── EMPLOYMENT ────────────────────────────────────────────
     "Nonfarm Payrolls": {
         "target_market": "Forex & Gold",
         "importance": "HIGH",
-        "analysis": "👷 تقرير الوظائف الأمريكية (NFP): وظائف أكثر من المتوقع → الدولار يقوى → الذهب يهبط. وظائف أقل → الدولار يضعف → الذهب يصعد."
+        "affected_assets": "USD, Gold (XAU), EUR/USD, GBP/USD, USD/JPY",
+        "analysis": "👷 Nonfarm Payrolls (NFP): More jobs than expected → USD strengthens → Gold drops. Fewer jobs → USD weakens → Gold rallies."
     },
     "NFP": {
         "target_market": "Forex & Gold",
         "importance": "HIGH",
-        "analysis": "👷 تقرير الوظائف (NFP): أكثر من المتوقع → دولار قوي، ذهب يهبط. أقل من المتوقع → دولار ضعيف، ذهب يصعد."
+        "affected_assets": "USD, Gold (XAU), EUR/USD, GBP/USD, USD/JPY",
+        "analysis": "👷 NFP Report: Higher than forecast → Strong USD, Gold drops. Lower → Weak USD, Gold rallies. One of the most volatile trading days."
     },
     "Unemployment Rate": {
         "target_market": "Forex & Gold",
         "importance": "HIGH",
-        "analysis": "📉 معدل البطالة: ارتفاع البطالة → ضعف الاقتصاد → الفيدرالي قد يخفض الفائدة → إيجابي للذهب والكريبتو. انخفاض → العكس."
+        "affected_assets": "USD, Gold (XAU), BTC, S&P 500, EUR/USD",
+        "analysis": "📉 Unemployment Rate: Rising → Weak economy → Fed may cut rates → Bullish for Gold & Crypto. Falling → Strong economy → Bearish for Gold."
     },
     "Initial Jobless Claims": {
         "target_market": "Forex & Stocks",
         "importance": "MEDIUM",
-        "analysis": "📋 طلبات إعانة البطالة: رقم أعلى = سوق عمل ضعيف → سلبي للدولار. رقم أقل = سوق عمل قوي → إيجابي للدولار."
+        "affected_assets": "USD, S&P 500, EUR/USD",
+        "analysis": "📋 Initial Jobless Claims: Higher = Weak labor market → Bearish for USD. Lower = Strong labor market → Bullish for USD."
     },
     "ADP": {
         "target_market": "Forex & Stocks",
         "importance": "MEDIUM",
-        "analysis": "👥 تقرير ADP للوظائف الخاصة: مؤشر مبكر لتقرير NFP. أعلى من المتوقع → دولار قوي. أقل → دولار ضعيف."
+        "affected_assets": "USD, S&P 500, EUR/USD, Gold",
+        "analysis": "👥 ADP Employment Report: Leading indicator for NFP. Higher → Strong USD. Lower → Weak USD. Released 2 days before NFP."
     },
 
     # ── GDP & GROWTH ─────────────────────────────────────────
     "GDP": {
         "target_market": "Stocks",
         "importance": "HIGH",
-        "analysis": "📈 الناتج المحلي الإجمالي (GDP): نمو أعلى من المتوقع → إيجابي للأسهم والدولار. نمو أقل أو سلبي → مخاوف ركود → هبوط."
+        "affected_assets": "USD, S&P 500, NASDAQ, Dow Jones, BTC",
+        "analysis": "📈 GDP Growth Rate: Higher than expected → Bullish for stocks & USD. Lower or negative → Recession fears → Bearish."
     },
     "Retail Sales": {
         "target_market": "Stocks",
         "importance": "MEDIUM",
-        "analysis": "🛒 مبيعات التجزئة: تعكس إنفاق المستهلك. أعلى من المتوقع → اقتصاد قوي → إيجابي للأسهم. أقل → سلبي."
+        "affected_assets": "USD, S&P 500, Consumer Stocks (AMZN, WMT, TGT)",
+        "analysis": "🛒 Retail Sales: Reflects consumer spending. Higher → Strong economy → Bullish for stocks. Lower → Bearish, especially retail sector."
     },
 
     # ── HOUSING ───────────────────────────────────────────────
     "Housing Starts": {
         "target_market": "Stocks",
         "importance": "LOW",
-        "analysis": "🏠 بدايات البناء: مؤشر على صحة قطاع العقارات. ارتفاع → نشاط اقتصادي. انخفاض → تباطؤ."
+        "affected_assets": "Real Estate Stocks, Homebuilders (DHI, LEN, PHM)",
+        "analysis": "🏠 Housing Starts: Indicator of real estate health. Rising → Economic activity. Falling → Slowdown."
     },
     "Existing Home Sales": {
         "target_market": "Stocks",
         "importance": "LOW",
-        "analysis": "🏡 مبيعات المنازل القائمة: تعكس حالة سوق العقارات وثقة المستهلك."
+        "affected_assets": "Real Estate Stocks, Mortgage REITs, USD",
+        "analysis": "🏡 Existing Home Sales: Reflects housing market & consumer confidence."
     },
 
     # ── MANUFACTURING ─────────────────────────────────────────
     "ISM Manufacturing": {
         "target_market": "Stocks",
         "importance": "MEDIUM",
-        "analysis": "🏭 مؤشر ISM الصناعي: فوق 50 = توسع اقتصادي → إيجابي. تحت 50 = انكماش → سلبي للأسهم."
+        "affected_assets": "USD, S&P 500, Industrial Stocks (CAT, DE, GE)",
+        "analysis": "🏭 ISM Manufacturing PMI: Above 50 = Expansion → Bullish. Below 50 = Contraction → Bearish for industrial stocks."
     },
     "ISM Services": {
         "target_market": "Stocks",
         "importance": "MEDIUM",
-        "analysis": "🏢 مؤشر ISM للخدمات: يغطي 75% من الاقتصاد. فوق 50 → توسع → إيجابي. تحت 50 → انكماش → سلبي."
+        "affected_assets": "USD, S&P 500, Service Sector Stocks",
+        "analysis": "🏢 ISM Services PMI: Covers 75% of the economy. Above 50 → Expansion → Bullish. Below 50 → Contraction → Bearish."
     },
     "PMI": {
         "target_market": "Stocks",
         "importance": "MEDIUM",
-        "analysis": "📊 مؤشر مديري المشتريات (PMI): فوق 50 = نمو القطاع. تحت 50 = انكماش. يؤثر على أسهم القطاع الصناعي."
+        "affected_assets": "USD, S&P 500, Industrial Stocks",
+        "analysis": "📊 Purchasing Managers' Index (PMI): Above 50 = Sector growth. Below 50 = Contraction. Impacts industrial sector stocks."
     },
 
     # ── CONSUMER CONFIDENCE ───────────────────────────────────
     "Consumer Confidence": {
         "target_market": "Stocks",
         "importance": "MEDIUM",
-        "analysis": "😊 ثقة المستهلك: ارتفاع → المستهلكين متفائلين → إنفاق أكثر → إيجابي للأسهم. انخفاض → سلبي."
+        "affected_assets": "S&P 500, Consumer Discretionary Stocks, USD",
+        "analysis": "😊 Consumer Confidence: Rising → Optimistic consumers → More spending → Bullish for stocks. Falling → Bearish."
     },
     "Michigan Consumer": {
         "target_market": "Stocks",
         "importance": "MEDIUM",
-        "analysis": "📊 مؤشر ميشيغان لثقة المستهلك: يقيس توقعات المستهلكين. ارتفاع → إيجابي للأسهم. انخفاض → سلبي."
+        "affected_assets": "S&P 500, Consumer Stocks, USD",
+        "analysis": "📊 Michigan Consumer Sentiment: Measures consumer expectations. Rising → Bullish for stocks. Falling → Bearish."
     },
 
     # ── TRADE & DOLLAR ────────────────────────────────────────
     "Trade Balance": {
         "target_market": "Forex",
         "importance": "LOW",
-        "analysis": "⚖️ الميزان التجاري: عجز أكبر → ضغط على الدولار. فائض أو عجز أقل → دعم للدولار."
+        "affected_assets": "USD, EUR/USD, USD/CNH",
+        "analysis": "⚖️ Trade Balance: Larger deficit → Pressure on USD. Surplus or smaller deficit → USD support."
     },
     "Durable Goods": {
         "target_market": "Stocks",
         "importance": "MEDIUM",
-        "analysis": "🔧 طلبيات السلع المعمرة: تعكس الاستثمار في المعدات. ارتفاع → ثقة في الاقتصاد → إيجابي للأسهم."
+        "affected_assets": "USD, S&P 500, Boeing (BA), Industrial Stocks",
+        "analysis": "🔧 Durable Goods Orders: Reflects business investment. Rising → Confidence in economy → Bullish for stocks."
     },
 
     # ── CRYPTO-SPECIFIC ───────────────────────────────────────
     "Bitcoin": {
         "target_market": "Crypto",
         "importance": "HIGH",
-        "analysis": "₿ حدث متعلق بالبيتكوين: راقب التأثير المباشر على سوق الكريبتو. أخبار إيجابية (ETF, تبني مؤسسي) → صعود. تنظيمات سلبية → هبوط."
+        "affected_assets": "BTC, ETH, SOL, Total Crypto Market",
+        "analysis": "₿ Bitcoin Event: Watch for direct crypto market impact. Positive news (ETF, adoption) → Rally. Negative regulation → Dump."
     },
     "Crypto": {
         "target_market": "Crypto",
         "importance": "MEDIUM",
-        "analysis": "🪙 حدث متعلق بالكريبتو: تابع تأثيره على السوق. تنظيمات جديدة، اختراقات، أو تبني مؤسسي كلها تحرك السوق."
+        "affected_assets": "BTC, ETH, Altcoins, Total Crypto Market",
+        "analysis": "🪙 Crypto Event: Monitor for market impact. New regulations, hacks, or institutional adoption all move the market."
     },
 
     # ── ECB (European) ────────────────────────────────────────
     "ECB": {
         "target_market": "Forex",
         "importance": "HIGH",
-        "analysis": "🇪🇺 البنك المركزي الأوروبي: قرارات الفائدة تؤثر على EUR/USD. رفع → اليورو يقوى. خفض → اليورو يضعف."
+        "affected_assets": "EUR/USD, EUR/GBP, EUR/JPY, DAX, Euro Stoxx 50",
+        "analysis": "🇪🇺 ECB Interest Rate Decision: Rate hike → EUR strengthens. Rate cut → EUR weakens. Impacts all EUR pairs and European stocks."
     },
 
     # ── BOE (British) ─────────────────────────────────────────
     "BOE": {
         "target_market": "Forex",
         "importance": "HIGH",
-        "analysis": "🇬🇧 بنك إنجلترا: قرارات الفائدة تؤثر على GBP/USD. رفع → الجنيه يقوى. خفض → الجنيه يضعف."
+        "affected_assets": "GBP/USD, EUR/GBP, GBP/JPY, FTSE 100",
+        "analysis": "🇬🇧 Bank of England Decision: Rate hike → GBP strengthens. Rate cut → GBP weakens. Impacts all GBP pairs and UK stocks."
     },
 
     # ── BOJ (Japan) ───────────────────────────────────────────
     "BOJ": {
         "target_market": "Forex",
         "importance": "HIGH",
-        "analysis": "🇯🇵 بنك اليابان: أي تغيير في سياسة التحكم في منحنى العائد يؤثر بقوة على USD/JPY والأسواق الآسيوية."
+        "affected_assets": "USD/JPY, EUR/JPY, GBP/JPY, Nikkei 225",
+        "analysis": "🇯🇵 Bank of Japan Decision: Any policy shift strongly impacts USD/JPY and Asian markets. Yield curve control changes cause extreme volatility."
+    },
+
+    # ── RBA (Australian) ──────────────────────────────────────
+    "RBA": {
+        "target_market": "Forex",
+        "importance": "HIGH",
+        "affected_assets": "AUD/USD, AUD/JPY, AUD/NZD, ASX 200",
+        "analysis": "🇦🇺 Reserve Bank of Australia Decision: Rate hike → AUD strengthens. Rate cut → AUD weakens. Impacts all AUD pairs."
+    },
+
+    # ── SNB (Swiss) ───────────────────────────────────────────
+    "SNB": {
+        "target_market": "Forex",
+        "importance": "HIGH",
+        "affected_assets": "USD/CHF, EUR/CHF, CHF/JPY",
+        "analysis": "🇨🇭 Swiss National Bank Decision: Impacts CHF pairs. SNB is known for surprise interventions in currency markets."
+    },
+
+    # ── RBNZ (New Zealand) ────────────────────────────────────
+    "RBNZ": {
+        "target_market": "Forex",
+        "importance": "MEDIUM",
+        "affected_assets": "NZD/USD, AUD/NZD, NZD/JPY",
+        "analysis": "🇳🇿 Reserve Bank of NZ Decision: Impacts NZD pairs directly. Rate decisions influence AUD/NZD correlation."
+    },
+
+    # ── OIL ───────────────────────────────────────────────────
+    "Crude Oil Inventories": {
+        "target_market": "Commodities",
+        "importance": "MEDIUM",
+        "affected_assets": "Crude Oil (WTI), Brent Oil, Energy Stocks (XOM, CVX, OXY)",
+        "analysis": "🛢️ EIA Crude Oil Inventories: Build (more supply) → Oil price drops. Draw (less supply) → Oil price rises. Impacts energy stocks."
     },
 }
 
 # Default analysis for events that don't match any rule
 DEFAULT_ANALYSIS = {
-    "HIGH": "⚠️ حدث اقتصادي عالي التأثير: تابع النتيجة الفعلية مقارنة بالمتوقع. فرق كبير = تحرك قوي في السوق.",
-    "MEDIUM": "📊 حدث اقتصادي متوسط التأثير: قد يسبب تقلبات مؤقتة في السوق.",
-    "LOW": "📋 حدث اقتصادي منخفض التأثير: تأثيره محدود عادةً ما لم يكن هناك مفاجأة كبيرة.",
+    "HIGH": "⚠️ High-impact economic event: Watch the actual result vs forecast. A big surprise = strong market move.",
+    "MEDIUM": "📊 Medium-impact event: May cause temporary market volatility.",
+    "LOW": "📋 Low-impact event: Usually limited impact unless there's a major surprise.",
 }
 
 
@@ -268,6 +330,8 @@ def generate_fallback_events() -> list[dict]:
         {"event": "Durable Goods Orders m/m", "day": 24, "importance": "MEDIUM"},
         {"event": "PPI (Producer Price Index) m/m", "day": 11, "importance": "MEDIUM"},
         {"event": "Michigan Consumer Sentiment", "day": 13, "importance": "MEDIUM"},
+        {"event": "Crude Oil Inventories", "day": 10, "importance": "MEDIUM"},
+        {"event": "Crude Oil Inventories", "day": 17, "importance": "MEDIUM"},
         {"event": "Existing Home Sales", "day": 20, "importance": "LOW"},
         {"event": "Housing Starts", "day": 17, "importance": "LOW"},
         {"event": "Trade Balance", "day": 6, "importance": "LOW"},
@@ -305,7 +369,7 @@ def generate_fallback_events() -> list[dict]:
 def process_events(raw_events: list[dict]) -> list[dict]:
     """
     Process raw events: match against our rules dictionary,
-    add Arabic analysis, and return Supabase-ready records.
+    add English analysis + affected assets, and return Supabase-ready records.
     """
     processed = []
     for event in raw_events:
@@ -325,13 +389,15 @@ def process_events(raw_events: list[dict]) -> list[dict]:
         else:
             importance = "MEDIUM"
 
-        # Get analysis and target market
+        # Get analysis, target market, and affected assets
         if rule:
             analysis = rule["analysis"]
             target_market = rule["target_market"]
+            affected_assets = rule["affected_assets"]
         else:
             analysis = DEFAULT_ANALYSIS.get(importance, DEFAULT_ANALYSIS["MEDIUM"])
             target_market = "All Markets"
+            affected_assets = "USD"
 
         # Build record
         record = {
@@ -342,6 +408,7 @@ def process_events(raw_events: list[dict]) -> list[dict]:
             "forecast": str(event.get("estimate", "")) if event.get("estimate") is not None else None,
             "previous": str(event.get("prev", "")) if event.get("prev") is not None else None,
             "target_market": target_market,
+            "affected_assets": affected_assets,
             "impact_analysis": analysis,
             "importance": importance,
         }

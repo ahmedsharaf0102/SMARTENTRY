@@ -13,6 +13,7 @@ interface CalendarEvent {
   forecast: string | null;
   previous: string | null;
   target_market: string;
+  affected_assets: string;
   impact_analysis: string;
   importance: 'HIGH' | 'MEDIUM' | 'LOW';
 }
@@ -55,6 +56,7 @@ function MarketTag({ market }: { market: string }) {
     'Forex': 'var(--accent-blue)',
     'Forex & Stocks': 'var(--accent-blue)',
     'Crypto': 'var(--accent-yellow)',
+    'Commodities': '#f97316',
   };
   const color = colorMap[market] || 'var(--text-muted)';
   return (
@@ -62,6 +64,37 @@ function MarketTag({ market }: { market: string }) {
       style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}>
       {market}
     </span>
+  );
+}
+
+/* ── Asset Chips ────────────────────────────────────────── */
+function AssetChips({ assets }: { assets: string }) {
+  if (!assets) return null;
+  const list = assets.split(',').map(a => a.trim()).filter(Boolean);
+
+  // Color coding for asset types
+  const getColor = (asset: string) => {
+    const upper = asset.toUpperCase();
+    if (upper === 'USD') return '#22c55e';
+    if (upper === 'EUR/USD' || upper === 'GBP/USD' || upper === 'USD/JPY' || upper.includes('/')) return 'var(--accent-blue)';
+    if (upper === 'GOLD' || upper === 'GOLD (XAU)' || upper.includes('XAU')) return '#eab308';
+    if (upper.includes('OIL') || upper.includes('CRUDE') || upper.includes('BRENT')) return '#f97316';
+    if (upper === 'BTC' || upper === 'ETH' || upper === 'SOL') return 'var(--accent-yellow)';
+    if (upper.includes('S&P') || upper.includes('NASDAQ') || upper.includes('DOW') || upper.includes('FTSE') || upper.includes('DAX') || upper.includes('NIKKEI') || upper.includes('ASX')) return 'var(--accent-green)';
+    if (upper.includes('BOND')) return 'var(--accent-purple)';
+    if (upper.includes('STOCK') || upper.includes('(')) return 'var(--accent-green)';
+    return 'var(--text-muted)';
+  };
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      {list.map((asset, i) => (
+        <span key={i} className="text-[9px] font-semibold px-1.5 py-0.5 rounded"
+          style={{ background: `color-mix(in srgb, ${getColor(asset)} 12%, transparent)`, color: getColor(asset) }}>
+          {asset}
+        </span>
+      ))}
+    </div>
   );
 }
 
@@ -78,7 +111,6 @@ function getDateKey(dateStr: string) {
   const d = new Date(dateStr);
   return d.toISOString().split('T')[0];
 }
-
 function isToday(dateStr: string) {
   return getDateKey(dateStr) === new Date().toISOString().split('T')[0];
 }
@@ -88,22 +120,18 @@ function EventCard({ event, expanded, onToggle }: { event: CalendarEvent; expand
   const isPast = new Date(event.event_time) < new Date();
 
   return (
-    <div
-      className="rounded-xl overflow-hidden transition-all duration-200"
+    <div className="rounded-xl overflow-hidden transition-all duration-200"
       style={{
         background: 'var(--bg-secondary)',
         border: `1px solid ${expanded ? 'var(--accent-blue)' : 'var(--border-color)'}`,
         opacity: isPast ? 0.6 : 1,
-      }}
-    >
+      }}>
       {/* Header Row */}
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center gap-3 p-4 text-left transition-colors hover:brightness-110"
-      >
+      <button onClick={onToggle} className="w-full flex items-center gap-3 p-4 text-left transition-colors hover:brightness-110">
         {/* Time */}
-        <div className="flex-shrink-0 text-center" style={{ minWidth: '60px' }}>
-          <div className="text-xs font-mono font-bold" style={{ color: isToday(event.event_time) ? 'var(--accent-green)' : 'var(--text-secondary)' }}>
+        <div className="flex-shrink-0 text-center" style={{ minWidth: '55px' }}>
+          <div className="text-xs font-mono font-bold"
+            style={{ color: isToday(event.event_time) ? 'var(--accent-green)' : 'var(--text-secondary)' }}>
             {formatEventTime(event.event_time)}
           </div>
         </div>
@@ -120,8 +148,8 @@ function EventCard({ event, expanded, onToggle }: { event: CalendarEvent; expand
           </div>
         </div>
 
-        {/* Data Columns */}
-        <div className="hidden sm:flex items-center gap-3 flex-shrink-0">
+        {/* Data Columns (desktop) */}
+        <div className="hidden md:flex items-center gap-3 flex-shrink-0">
           {event.forecast && (
             <div className="text-center" style={{ minWidth: '50px' }}>
               <div className="text-[9px] uppercase" style={{ color: 'var(--text-muted)' }}>Forecast</div>
@@ -145,27 +173,40 @@ function EventCard({ event, expanded, onToggle }: { event: CalendarEvent; expand
         {/* Importance + Arrow */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <ImportanceBadge level={event.importance} />
-          <span className="text-xs transition-transform"
+          <span className="text-xs transition-transform duration-200"
             style={{ color: 'var(--text-muted)', transform: expanded ? 'rotate(180deg)' : 'rotate(0)' }}>
             ▼
           </span>
         </div>
       </button>
 
-      {/* Expanded Analysis */}
-      {expanded && event.impact_analysis && (
-        <div className="px-4 pb-4">
-          <div className="p-4 rounded-lg" style={{ background: 'var(--bg-tertiary)', borderRight: '3px solid var(--accent-blue)' }}>
-            <div className="text-[10px] uppercase font-bold mb-2" style={{ color: 'var(--accent-blue)' }}>
-              📊 Smart Analysis
+      {/* Expanded Panel */}
+      {expanded && (
+        <div className="px-4 pb-4 space-y-3">
+          {/* Affected Assets */}
+          {event.affected_assets && (
+            <div className="p-3 rounded-lg" style={{ background: 'var(--bg-tertiary)', borderLeft: '3px solid var(--accent-yellow)' }}>
+              <div className="text-[10px] uppercase font-bold mb-2" style={{ color: 'var(--accent-yellow)' }}>
+                🎯 Affected Assets
+              </div>
+              <AssetChips assets={event.affected_assets} />
             </div>
-            <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', direction: 'rtl', textAlign: 'right' }}>
-              {event.impact_analysis}
-            </p>
-          </div>
+          )}
+
+          {/* Smart Analysis */}
+          {event.impact_analysis && (
+            <div className="p-3 rounded-lg" style={{ background: 'var(--bg-tertiary)', borderLeft: '3px solid var(--accent-blue)' }}>
+              <div className="text-[10px] uppercase font-bold mb-2" style={{ color: 'var(--accent-blue)' }}>
+                📊 Smart Analysis
+              </div>
+              <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                {event.impact_analysis}
+              </p>
+            </div>
+          )}
 
           {/* Mobile data */}
-          <div className="flex sm:hidden gap-3 mt-3">
+          <div className="flex md:hidden gap-3">
             {event.forecast && (
               <div className="flex-1 p-2 rounded-lg text-center" style={{ background: 'var(--bg-tertiary)' }}>
                 <div className="text-[9px] uppercase" style={{ color: 'var(--text-muted)' }}>Forecast</div>
@@ -253,10 +294,7 @@ export default function EconomicCalendarContent() {
             Economic <span style={{ color: '#06b6d4' }}>Calendar</span>
           </h1>
           <p className="text-lg max-w-2xl" style={{ color: 'var(--text-secondary)' }}>
-            Smart analysis for every market-moving event. Click any event to see how it could impact Crypto, Stocks, Forex, and Gold.
-          </p>
-          <p className="text-sm mt-2 max-w-2xl" style={{ color: 'var(--text-muted)' }}>
-            اضغط على أي حدث لتشاهد التحليل الذكي بالعربية — كيف سيتأثر السوق بنتيجة هذا الحدث
+            Smart analysis for every market-moving event. Click any event to see which assets are affected and how the result could impact the market.
           </p>
         </div>
       </section>
@@ -275,8 +313,7 @@ export default function EconomicCalendarContent() {
                   background: activeTab === tab.value ? `color-mix(in srgb, ${tab.color} 20%, transparent)` : 'var(--bg-tertiary)',
                   color: activeTab === tab.value ? tab.color : 'var(--text-muted)',
                   border: activeTab === tab.value ? `1px solid ${tab.color}` : '1px solid transparent',
-                }}
-              >
+                }}>
                 <span>{tab.icon}</span>
                 {tab.label}
               </button>
@@ -294,8 +331,7 @@ export default function EconomicCalendarContent() {
                   background: importanceFilter === level ? 'var(--bg-tertiary)' : 'transparent',
                   color: importanceFilter === level ? 'var(--text-primary)' : 'var(--text-muted)',
                   border: importanceFilter === level ? '1px solid var(--border-color)' : '1px solid transparent',
-                }}
-              >
+                }}>
                 {level === 'ALL' ? '🔹 All' : level === 'HIGH' ? '🔴 High' : level === 'MEDIUM' ? '🟡 Medium' : '⚪ Low'}
               </button>
             ))}
@@ -381,8 +417,8 @@ export default function EconomicCalendarContent() {
                 <p>Events that significantly move markets. FOMC, CPI, NFP — plan your trades around these.</p>
               </div>
               <div>
-                <p className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>📊 Smart Analysis</p>
-                <p>Click any event to see an Arabic analysis explaining how the result could affect your market (Crypto, Stocks, Forex).</p>
+                <p className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>🎯 Affected Assets</p>
+                <p>Click any event to see exactly which assets will be impacted — USD, Gold, BTC, specific stocks, or forex pairs.</p>
               </div>
               <div>
                 <p className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>🟡 Forecast vs Actual</p>
