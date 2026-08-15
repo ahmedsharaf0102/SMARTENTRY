@@ -479,17 +479,28 @@ def process_events(raw_events: list[dict]) -> list[dict]:
         description = get_description(event_name)
         source_name, source_url = get_source(event_name)
 
-        # Data period (derive from event time)
-        event_time_str = event.get("time", datetime.now(timezone.utc).isoformat())
+        # ── CRITICAL: Normalize event time to UTC ISO 8601 ──
+        # Finnhub returns time as "2026-08-17 13:30:00" (no timezone)
+        # We must append +00:00 to tell Supabase it's UTC
+        raw_time = event.get("time", "")
         try:
-            et = datetime.fromisoformat(event_time_str.replace("Z", "+00:00"))
+            if "T" in raw_time:
+                # Already ISO format
+                et = datetime.fromisoformat(raw_time.replace("Z", "+00:00"))
+            elif raw_time:
+                # Finnhub format: "2026-08-17 13:30:00"
+                et = datetime.strptime(raw_time, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+            else:
+                et = datetime.now(timezone.utc)
+            event_time_iso = et.isoformat()
             data_period = et.strftime("%b %Y")
         except Exception:
+            event_time_iso = datetime.now(timezone.utc).isoformat()
             data_period = None
 
         record = {
             "event_name": event_name,
-            "event_time": event_time_str,
+            "event_time": event_time_iso,
             "country": country,
             "currency": currency,
             "actual": actual,
